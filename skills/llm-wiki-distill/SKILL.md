@@ -1,11 +1,11 @@
 ---
 name: llm-wiki-distill
 description: >-
-  Distill the llm-wiki knowledge base — promote raw `fleeting` notes into
-  durable, self-contained notes (`permanent` reusable idea / `project`
-  project-specific record), consolidate duplicates, and weave links — so the KB
-  stays high-signal and does not bloat. Use at a wrap-up, or when fleeting notes
-  have piled up, or when several notes cover the same thing. Triggers on
+  Distill the llm-wiki knowledge base — promote raw `fleeting` notes into durable,
+  self-contained `active` notes, lift a closed bounded concern's keepers up to its
+  parent (distill-up-on-close), consolidate duplicates, and weave links — so the KB
+  stays high-signal and does not bloat. Use at a wrap-up, when fleeting notes have
+  piled up, when several notes cover the same thing, or when a project/branch ends. Triggers on
   "llm-wiki を蒸留して", "fleeting を整理して", "KB のノートを統合して", "wiki を
   片付けて", "distill the wiki", "consolidate the KB", "promote these notes".
   Should NOT trigger for the initial quick capture (use llm-wiki-capture) or for
@@ -17,10 +17,11 @@ user-invocable: true
 # llm-wiki: Distill
 
 Turn raw captures into durable knowledge and keep the vessel from bloating.
-`fleeting` is the only raw layer; distilling promotes it and consolidates
-overlap.
+`fleeting` is the only raw layer; distilling promotes it to `active`, consolidates
+overlap, and — when a bounded concern ends — lifts its keepers up to the parent.
 
-Apply **llm-wiki-base** first (Setup resolves `$wiki`).
+Apply **llm-wiki-base** first (Setup resolves `$wiki`). Lifecycle (`fleeting` →
+`active` → `superseded`/`retired`) and the concern tree are defined there.
 
 ## Find what to distill
 
@@ -28,22 +29,46 @@ Apply **llm-wiki-base** first (Setup resolves `$wiki`).
 zk -W "$wiki" list --tag fleeting -f json --quiet |
   jq -c '.[] | {title, path, tags: .metadata.tags, snippet: (.body[0:100])}'
 zk -W "$wiki" list --orphan  -f '{{title}}' --quiet   # unlinked → likely undigested
-zk -W "$wiki" list --tagless -f '{{title}}' --quiet   # untyped → needs a type
+zk -W "$wiki" list --tagless -f '{{title}}' --quiet   # no lifecycle tag → needs one
 ```
 
-## Promote a note
+## Promote a note (fleeting → active)
 
-Rewrite the note so it stands on its own, then change its type tag from
-`fleeting` to the right durable type (edit the frontmatter):
+Rewrite the note so it stands on its own, then swap its **lifecycle tag** from
+`fleeting` to `active` in the frontmatter. There is **no `permanent`/`project`
+choice** — durable-vs-bounded is a *Scope* fact (which concern's directory the note
+lives in), not a tag. The bar for `active`:
 
-| Promote to | When | Bar to meet |
-|------------|------|-------------|
-| `permanent` | A reusable, atomic idea worth recalling across projects | Self-contained and atomic — one idea, readable months later without the session. |
-| `project` | A project-specific decision/state/PRD/handoff | States the decision AND *why* (alternatives rejected), or the current state + next action. |
-| `moc` | It is really a structure/hub over many notes | Hand off to **llm-wiki-overview** instead. |
+- **Self-contained** — one idea, or one decision + its *why* (alternatives
+  rejected), or one state + next action; readable months later without the session.
+- **Placed in the right concern** — a note that is really cross-cutting belongs in
+  a permanent concern (repo or `global`), not the passing concern capture dropped it
+  in; **move the file** if so. This placement is the classification capture deferred.
 
 Weave it into the graph: add `[[slug]]` links to related notes (`[[dir/slug]]`
 across scopes). A promoted note that links nowhere is a smell.
+
+Later lifecycle: when a note is replaced by another, tag it `superseded` and link
+to the replacement; when it is no longer accurate, tag it `retired` (kept for
+history, out of reach by default). One lifecycle tag per note. A curated hub over
+many notes is **not** a promotion target — it is an optional `_*.md` structure note
+(see **llm-wiki-overview**).
+
+## distill-up-on-close (when a bounded concern ends)
+
+When a bounded concern (a project/branch directory) closes, do not leave its
+directory as a dead label. This is the **only** path from a time-boxed concern to an
+open-ended one:
+
+1. **Lift keepers up** — for each note worth keeping, promote it (as above) and move
+   the file into the **parent** concern: the permanent concern above it, the parent
+   bounded concern, or `global/` if it has none.
+2. **Prune the rest** — delete the disposable notes (spent `fleeting`, drafts,
+   `superseded`).
+3. **Empty the directory** — once keepers are lifted and the rest pruned, the
+   directory is gone; its absence *is* the closed status.
+4. **Repoint & re-index** — fix inbound `[[dir/slug]]` links that pointed into the
+   closed directory to the notes' new home, then `zk -W "$wiki" index >/dev/null`.
 
 ## Consolidate (anti-bloat)
 
@@ -63,10 +88,10 @@ tooling is ever justified.
 
 ## Success Criteria
 
-- [ ] Promoted notes are self-contained and carry a durable type
-      (`permanent`/`project`), no longer `fleeting`.
-- [ ] `permanent` notes are atomic and reusable; `project` notes state decision
-      + rationale or state + next action.
+- [ ] Promoted notes are self-contained and tagged `active` (no longer
+      `fleeting`), placed in the right concern (cross-cutting → permanent / `global`).
+- [ ] When a bounded concern was closed, its keepers were lifted to the parent, the
+      rest pruned, the directory emptied, and inbound links repointed.
 - [ ] Duplicates were consolidated into one keeper with inbound links repointed;
       redundant notes deleted.
 - [ ] Promoted notes are linked into the graph (no orphans left behind).

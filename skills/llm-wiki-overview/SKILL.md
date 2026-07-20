@@ -2,10 +2,11 @@
 name: llm-wiki-overview
 description: >-
   Give a bird's-eye view of what the llm-wiki knowledge base knows about a theme,
-  and maintain the curated structure notes that keep it navigable — `moc` (Map of
-  Content) hub notes per theme, and the single home/index front-door note. Builds
-  the overview from the zk link graph and tag index. Use to answer "what do I
-  know about X?" or to refresh the KB's structure. Triggers on "llm-wiki の X に
+  built from the zk link graph and tag index — and optionally persist that view as
+  a curated hub note (a plain `_*.md` structure file kept out of reach) plus a
+  single front-door note. Structure notes are an optional consumer-layer
+  convenience, not a reserved axis of the model. Use to answer "what do I know about
+  X?" or to refresh the KB's navigable structure. Triggers on "llm-wiki の X に
   ついての俯瞰", "KB の全体像を見せて", "MOC を作って/更新して", "wiki の目次を
   整えて", "what does the KB know about X", "build a map of content", "overview of
   the wiki". Should NOT trigger for finding one specific note (use
@@ -16,8 +17,14 @@ user-invocable: true
 
 # llm-wiki: Overview & Structure
 
-Answer "what does the KB know about X?" from the link graph, and keep the curated
-structure notes (`moc` hubs + one home/index) current so the KB stays navigable.
+Answer "what does the KB know about X?" from the link graph and tags, and — when
+useful — persist that view as a curated hub so the KB stays navigable.
+
+The KB's **structural truth is the directory tree + zk's computed index** (Scope +
+Lifecycle; see llm-wiki-base). A hub is an **optional human-facing convenience**
+layered on top — *not* part of the reserved model, and *not* a note type. There is
+no `moc` tag: a hub is just a structure file named `_*.md`, which the `_`-prefix
+convention keeps out of reach.
 
 Apply **llm-wiki-base** first (Setup resolves `$wiki`).
 
@@ -26,29 +33,32 @@ Apply **llm-wiki-base** first (Setup resolves `$wiki`).
 ```sh
 zk -W "$wiki" list --tag <theme> -f json --quiet |
   jq -c '.[] | {title, tags: .metadata.tags, path}'            # notes on the theme
-zk -W "$wiki" list --tag <theme> --link-to "$hub" --recursive  # how they connect
+zk -W "$wiki" list --tag <theme> --recursive --max-distance 2  # how they connect
 zk -W "$wiki" graph --format json                              # whole-notebook shape
 ```
 
 Synthesize the result into a short map: the key notes, how they relate, and gaps
-(sparse areas). This is a read; do not create notes unless asked to persist it.
+(sparse areas). This is a **read** — do not create files unless asked to persist it.
 
-## Maintain `moc` (Map of Content) hubs
+## Persist a curated hub (optional)
 
-A `moc` note is a curated hub over a theme — a human/agent-authored structure
-note, the part zk does not generate. To persist an overview as a durable hub:
+When an overview is worth keeping, persist it as a **curated hub** — a plain
+structure note named `_<theme>.md` so the `_`-prefix convention keeps it out of
+reach (see llm-wiki-base; no marker tag, it is not a `fleeting`/`active` note):
 
-1. Create/edit a note titled for the theme (e.g. "MOC - Consensus"), tag it
-   `moc`, place it in the relevant scope (or `global/`).
-2. In its body, organize the theme's notes into a sensible structure/sequence
-   with `[[slug]]` links (not an exhaustive dump — curate).
-3. Re-index: `zk -W "$wiki" index >/dev/null`.
+1. Create/edit `_<theme>.md` in the relevant concern's scope directory (or
+   `global/`), e.g. `global/_consensus.md`.
+2. In its body, organize the theme's notes into a sensible structure/sequence with
+   `[[slug]]` links (`[[dir/slug]]` across scopes) — curate, don't dump exhaustively.
+3. The hub is read **directly** (Glob/Read), not via zk reach: being `_`-prefixed,
+   the hub itself — and the links inside it — stay out of the zk graph by design (so
+   it never adds backlink noise). Re-index only registers the *target* notes:
+   `zk -W "$wiki" index >/dev/null`.
 
-## Maintain the single home / index note
+## Maintain the single home / front-door note
 
-Keep **one** top-level front-door note (e.g. `global/home.md`, tagged `moc`) that
-links to the major `moc` hubs — a map of maps. Update it only when a new hub is
-added.
+Keep **one** top-level front-door note, `global/_home.md` (also `_`-prefixed), that
+links to the major hubs — a map of maps. Update it only when a new hub is added.
 
 - Do **not** build per-keyword index notes by hand: the live keyword index is
   `zk tag list` (see llm-wiki-retrieve). A hand-maintained keyword index would
@@ -57,7 +67,7 @@ added.
 ## Success Criteria
 
 - [ ] An overview is synthesized from the graph/tags, not a raw file dump.
-- [ ] Any persisted hub is tagged `moc`, curated (not exhaustive), and links its
-      theme's notes with `[[slug]]`.
-- [ ] At most one home/index note exists; it maps to the `moc` hubs.
+- [ ] Any persisted hub is a `_`-prefixed structure note (out of reach, no marker
+      tag), curated (not exhaustive), linking its theme's notes with `[[slug]]`.
+- [ ] At most one home/front-door note (`global/_home.md`); it maps to the hubs.
 - [ ] No hand-maintained per-keyword index (that role is `zk tag list`).

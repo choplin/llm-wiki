@@ -40,9 +40,9 @@ Narrowing options (apply only what the request implies — the KB stays maximall
 findable by default; the caller narrows):
 
 ```sh
-zk -W "$wiki" list <scope>/ -m "<query>" ...        # scope to one repo directory
-zk -W "$wiki" list --tag <tag> ...                  # by type (permanent) or topic (raft)
-zk -W "$wiki" list --tag "NOT transient" ...        # drop disposable session notes (NOT must be uppercase)
+zk -W "$wiki" list <scope>/ -m "<query>" ...        # scope to one concern's directory
+zk -W "$wiki" list --tag active ...                 # by lifecycle (durable layer) or topic (raft)
+zk -W "$wiki" list --tag "NOT retired" ...          # drop stale/retired notes (NOT must be uppercase)
 ```
 
 ### Stage 2 — expand + traverse (only the relevant ones)
