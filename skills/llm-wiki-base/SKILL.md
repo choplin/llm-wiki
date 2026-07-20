@@ -49,12 +49,19 @@ wiki="${XDG_DATA_HOME:-$HOME/.local/share}/llm-wiki"
 if [ ! -d "$wiki/.zk" ]; then
   mkdir -p "$wiki"
   zk --no-input init "$wiki" >/dev/null
-  # Config: slug filenames (so [[slug]] wikilinks resolve), wiki links, hashtags.
-  # `ignore` keeps plumbing files (named _*.md at ANY depth, e.g. _gaps.md or
-  # global/_consensus.md) out of the index and out of reach — the reserved
-  # reach-exclusion mechanism. `**/_*.md` matches root and nested alike (a bare
-  # `_*.md` would only match the notebook root). Verified on zk 0.15.5.
-  cat > "$wiki/.zk/config.toml" <<'TOML'
+fi
+# The config and template are skill-owned and fully generated, so (re)write them
+# on EVERY setup — not just first init — so existing notebooks pick up changes
+# (e.g. new aliases) too. Both writes are idempotent.
+# Config: slug filenames (so [[slug]] wikilinks resolve), wiki links, hashtags.
+# `ignore` keeps plumbing files (named _*.md at ANY depth, e.g. _gaps.md or
+# global/_consensus.md) out of the index and out of reach — the reserved
+# reach-exclusion mechanism. `**/_*.md` matches root and nested alike (a bare
+# `_*.md` would only match the notebook root). The [alias] block bakes in
+# zero-install human read verbs — invoke them as `zk <verb>` (a global flag
+# before the verb name breaks zk's alias resolution, so `zk find …`, never
+# `zk --no-input find …`). Verified on zk 0.15.5.
+cat > "$wiki/.zk/config.toml" <<'TOML'
 [note]
 filename = "{{slug title}}"
 template = "default.md"
@@ -65,11 +72,20 @@ hashtags = true
 [filter]
 fleeting = "--tag fleeting"
 active = "--tag active"
+[alias]
+# Human read-only verbs (write/judgment verbs stay agent-side, off the CLI):
+#   find <query>  — title + tags + snippet for full-text matches
+#   show <query>  — full note (title, tags, body) for full-text matches
+#   links <note>  — backlinks to <note>, then outbound links from it
+#   tags          — the keyword index
+find = 'zk --no-input list --quiet --match "$*" --format "{{title}}  {{#each tags}}#{{.}} {{/each}}\n  {{list snippets}}"'
+show = 'zk --no-input list --quiet --match "$*" --format full'
+links = 'echo "backlinks (-> $1):"; zk --no-input list --quiet --format oneline --link-to "$1"; echo "outbound (from $1):"; zk --no-input list --quiet --format oneline --linked-by "$1"'
+tags = 'zk --no-input tag list'
 TOML
-  # Template: {{content}} is required so `zk new -i` can pipe a body in via stdin.
-  printf -- '---\ntitle: {{title}}\ncreated: {{format-date now "%%Y-%%m-%%d"}}\ntags: [fleeting]\n---\n\n{{content}}\n' \
-    > "$wiki/.zk/templates/default.md"
-fi
+# Template: {{content}} is required so `zk new -i` can pipe a body in via stdin.
+printf -- '---\ntitle: {{title}}\ncreated: {{format-date now "%%Y-%%m-%%d"}}\ntags: [fleeting]\n---\n\n{{content}}\n' \
+  > "$wiki/.zk/templates/default.md"
 ```
 
 All `zk` commands below assume `-W "$wiki"` (run as if started in the notebook)
