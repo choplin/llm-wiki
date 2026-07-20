@@ -36,8 +36,7 @@ notebook if missing) and resolve the current concern's scope directory `$scope`
 2. **Avoid duplication (reach before writing).** Search for an existing note on
    the same thing before creating a new one:
    ```sh
-   zk -W "$wiki" list -m "<topic keywords>" -f json --quiet |
-     jq -c '.[] | {title, path, snippet: (.body[0:100])}'
+   zk -W "$wiki" scan -m "<topic keywords>"
    ```
    - If a note already covers it, **append to / edit that note** (Edit tool) and
      link the two, rather than creating a near-duplicate.
@@ -50,10 +49,10 @@ notebook if missing) and resolve the current concern's scope directory `$scope`
 3. **Create the note** (always `fleeting` — capture does not classify), piping the body via stdin:
    ```sh
    printf '%s' "<body>" |
-     zk -W "$wiki" --no-input new "$scope" --title "<Concise Title>" -i -p
+     zk -W "$wiki" new "$scope" --title "<Concise Title>"
    ```
-   `-p` prints the path (no editor opens); `-i` reads the body from stdin into
-   the template's `{{content}}`.
+   The `new` verb bakes in `-i` (reads the body from stdin into the template's
+   `{{content}}`) and `-p` (prints the path, no editor opens).
 
 4. **Tag it.** The template seeds `tags: [fleeting]` — the **lifecycle tag stays
    `fleeting`** (capture never promotes; that is distill's job). Add free
@@ -67,7 +66,7 @@ notebook if missing) and resolve the current concern's scope directory `$scope`
 
 6. **Re-index** so links and tags register:
    ```sh
-   zk -W "$wiki" index >/dev/null
+   zk -W "$wiki" reindex
    ```
 
 ## Success Criteria

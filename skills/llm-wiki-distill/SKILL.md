@@ -26,10 +26,9 @@ Apply **llm-wiki-base** first (Setup resolves `$wiki`). Lifecycle (`fleeting` �
 ## Find what to distill
 
 ```sh
-zk -W "$wiki" list --tag fleeting -f json --quiet |
-  jq -c '.[] | {title, path, tags: .metadata.tags, snippet: (.body[0:100])}'
-zk -W "$wiki" list --orphan  -f '{{title}}' --quiet   # unlinked → likely undigested
-zk -W "$wiki" list --tagless -f '{{title}}' --quiet   # no lifecycle tag → needs one
+zk -W "$wiki" scan --tag fleeting   # raw captures to promote (JSON {title,tags,path,snippet})
+zk -W "$wiki" scan --orphan         # unlinked → likely undigested
+zk -W "$wiki" scan --tagless        # no lifecycle tag → needs one
 ```
 
 ## Promote a note (fleeting → active)
@@ -68,7 +67,7 @@ open-ended one:
 3. **Empty the directory** — once keepers are lifted and the rest pruned, the
    directory is gone; its absence *is* the closed status.
 4. **Repoint & re-index** — fix inbound `[[dir/slug]]` links that pointed into the
-   closed directory to the notes' new home, then `zk -W "$wiki" index >/dev/null`.
+   closed directory to the notes' new home, then `zk -W "$wiki" reindex`.
 
 ## Consolidate (anti-bloat)
 
@@ -78,7 +77,7 @@ When several notes cover the same thing, merge them into one durable note:
 2. Fold the others' content into it; add source links where they came from
    research.
 3. Repoint inbound links to the keeper, then delete the redundant notes.
-4. Re-index: `zk -W "$wiki" index >/dev/null`.
+4. Re-index: `zk -W "$wiki" reindex`.
 
 **Known gap:** zk has no merge/consolidate command and no rename-safe link
 refactoring — this is manual, agent-judged editing. Every time it is painful

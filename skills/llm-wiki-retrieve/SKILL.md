@@ -32,17 +32,16 @@ Return only title + tags + path + snippet + links. Do **not** read full bodies
 yet.
 
 ```sh
-zk -W "$wiki" list -m "<query>" -f json --quiet |
-  jq -c '.[] | {title, tags: .metadata.tags, path, snippet: (.body[0:120])}'
+zk -W "$wiki" scan -m "<query>"
 ```
 
 Narrowing options (apply only what the request implies — the KB stays maximally
-findable by default; the caller narrows):
+findable by default; the caller narrows). `scan` forwards these to zk list:
 
 ```sh
-zk -W "$wiki" list <scope>/ -m "<query>" ...        # scope to one concern's directory
-zk -W "$wiki" list --tag active ...                 # by lifecycle (durable layer) or topic (raft)
-zk -W "$wiki" list --tag "NOT retired" ...          # drop stale/retired notes (NOT must be uppercase)
+zk -W "$wiki" scan <scope>/ -m "<query>"       # scope to one concern's directory
+zk -W "$wiki" scan --tag active                # by lifecycle (durable layer) or topic (raft)
+zk -W "$wiki" scan --tag "NOT retired"         # drop stale/retired notes (NOT must be uppercase)
 ```
 
 ### Stage 2 — expand + traverse (only the relevant ones)
@@ -51,12 +50,11 @@ For the notes that look relevant, read the body and follow links to gather
 surrounding context:
 
 ```sh
-zk -W "$wiki" list -m "<query>" -f full --quiet         # full body of the matches
-# resolve a title to a path, then walk its links:
-p=$(zk -W "$wiki" list -m "<title>" -f '{{path}}' --quiet)
-zk -W "$wiki" list --link-to  "$p" -f '{{title}}' --quiet   # backlinks (who references it)
-zk -W "$wiki" list --linked-by "$p" -f '{{title}}' --quiet  # outbound
-zk -W "$wiki" list --link-to  "$p" --recursive --max-distance 2 -f '{{title}}' --quiet
+zk -W "$wiki" show "<query>"                    # full body of the matches
+# resolve a title to a path, then walk its links (inbound then outbound):
+p=$(zk -W "$wiki" scan -m "<title>" | jq -r '.path' | head -1)
+zk -W "$wiki" links "$p"                        # backlinks + outbound, JSON
+zk -W "$wiki" links "$p" --recursive --max-distance 2   # traverse the graph
 ```
 
 Then Read the specific note files that matter for the task.
@@ -67,8 +65,8 @@ To enter by keyword rather than free-text, list the live keyword index and jump
 in:
 
 ```sh
-zk -W "$wiki" tag list -f json --quiet   # keywords + note counts
-zk -W "$wiki" list --tag <keyword> -f '{{title}}' --quiet
+zk -W "$wiki" tags                       # keywords + note counts (JSON)
+zk -W "$wiki" scan --tag <keyword>       # jump into a keyword
 ```
 
 ## Success Criteria

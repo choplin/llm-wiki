@@ -31,10 +31,9 @@ Apply **llm-wiki-base** first (Setup resolves `$wiki`).
 ## Produce an overview of a theme
 
 ```sh
-zk -W "$wiki" list --tag <theme> -f json --quiet |
-  jq -c '.[] | {title, tags: .metadata.tags, path}'            # notes on the theme
-zk -W "$wiki" list --tag <theme> --recursive --max-distance 2  # how they connect
-zk -W "$wiki" graph --format json                              # whole-notebook shape
+zk -W "$wiki" scan --tag <theme>                                # notes on the theme (JSON)
+zk -W "$wiki" scan --tag <theme> --recursive --max-distance 2   # how they connect
+zk -W "$wiki" graph                                             # whole-notebook shape (JSON)
 ```
 
 Synthesize the result into a short map: the key notes, how they relate, and gaps
@@ -53,7 +52,7 @@ reach (see llm-wiki-base; no marker tag, it is not a `fleeting`/`active` note):
 3. The hub is read **directly** (Glob/Read), not via zk reach: being `_`-prefixed,
    the hub itself — and the links inside it — stay out of the zk graph by design (so
    it never adds backlink noise). Re-index only registers the *target* notes:
-   `zk -W "$wiki" index >/dev/null`.
+   `zk -W "$wiki" reindex`.
 
 ## Maintain the single home / front-door note
 
@@ -61,7 +60,7 @@ Keep **one** top-level front-door note, `global/_home.md` (also `_`-prefixed), t
 links to the major hubs — a map of maps. Update it only when a new hub is added.
 
 - Do **not** build per-keyword index notes by hand: the live keyword index is
-  `zk tag list` (see llm-wiki-retrieve). A hand-maintained keyword index would
+  `zk -W "$wiki" tags` (see llm-wiki-retrieve). A hand-maintained keyword index would
   duplicate it and go stale — that is bloat.
 
 ## Success Criteria

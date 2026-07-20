@@ -57,10 +57,13 @@ fi
 # `ignore` keeps plumbing files (named _*.md at ANY depth, e.g. _gaps.md or
 # global/_consensus.md) out of the index and out of reach — the reserved
 # reach-exclusion mechanism. `**/_*.md` matches root and nested alike (a bare
-# `_*.md` would only match the notebook root). The [alias] block bakes in
-# zero-install human read verbs — invoke them as `zk <verb>` (a global flag
-# before the verb name breaks zk's alias resolution, so `zk find …`, never
-# `zk --no-input find …`). Verified on zk 0.15.5.
+# `_*.md` would only match the notebook root). The [alias] block bakes in the
+# zk verbs — the single source of truth for KB mechanics (see "Verb surface"
+# below): every skill routes its reads/maintenance through a verb, never a raw
+# `zk list …`/`tag list`/`index` again. Invoke a verb as `zk -W "$wiki" <verb>`
+# (the operation skills call them this way); note that a *no-value* global flag
+# before the verb name breaks zk's alias resolution (`zk --no-input find …`
+# fails), so each verb bakes `--no-input` inside instead. Verified on zk 0.15.5.
 cat > "$wiki/.zk/config.toml" <<'TOML'
 [note]
 filename = "{{slug title}}"
@@ -73,24 +76,39 @@ hashtags = true
 fleeting = "--tag fleeting"
 active = "--tag active"
 [alias]
-# Human read-only verbs (write/judgment verbs stay agent-side, off the CLI):
-#   find <query>  — title + tags + snippet for full-text matches
-#   show <query>  — full note (title, tags, body) for full-text matches
-#   links <note>  — backlinks to <note>, then outbound links from it
-#   tags          — the keyword index
-find = 'zk --no-input list --quiet --match "$*" --format "{{title}}  {{#each tags}}#{{.}} {{/each}}\n  {{list snippets}}"'
-show = 'zk --no-input list --quiet --match "$*" --format full'
-links = 'echo "backlinks (-> $1):"; zk --no-input list --quiet --format oneline --link-to "$1"; echo "outbound (from $1):"; zk --no-input list --quiet --format oneline --linked-by "$1"'
-tags = 'zk --no-input tag list'
+# Verbs = the one place KB mechanics live. Read verbs emit JSON as the canonical
+# machine surface (agents parse it); `find` is the thin human presenter over
+# `scan`. Every verb forwards extra args to the underlying zk command, so
+# filters compose: `scan --tag active`, `scan <scope>/ --match x`,
+# `scan --orphan`, `links <path> --recursive --max-distance 2`.
+#   scan  [filters…]      — compact JSON map {title,tags,path,snippet}; the
+#                           workhorse behind every "reach a note" read
+#   find  <query>         — human-readable presenter over `scan --match`
+#   show  <query>         — full note (title, tags, body) for full-text matches
+#   links <path> [flags]  — inbound then outbound links of <path> as JSON
+#   tags                  — the keyword index (JSON)
+#   graph                 — the whole-notebook link graph (JSON)
+#   new   <scope> [flags] — create a note: body from stdin (-i), print path (-p)
+#   reindex               — refresh the index after writes/moves
+scan  = 'zk --no-input list --quiet "$@" -f json | jq -c ".[] | {title, tags: .metadata.tags, path, snippet: (.body[0:120])}"'
+find  = 'zk scan --match "$*" | jq -r "[.title, (.tags | map(\"#\"+.) | join(\" \")), .snippet] | join(\"  \")"'
+show  = 'zk --no-input list --quiet --match "$*" --format full'
+links = 'p="$1"; shift; { zk --no-input list --quiet --link-to "$p" "$@" -f json | jq -c ".[] | {dir:\"in\", title, path}"; zk --no-input list --quiet --linked-by "$p" "$@" -f json | jq -c ".[] | {dir:\"out\", title, path}"; }'
+tags  = 'zk --no-input tag list -f json --quiet'
+graph = 'zk --no-input graph --format json --quiet'
+new     = 'zk --no-input new "$@" -i -p'
+reindex = 'zk --no-input index'
 TOML
 # Template: {{content}} is required so `zk new -i` can pipe a body in via stdin.
 printf -- '---\ntitle: {{title}}\ncreated: {{format-date now "%%Y-%%m-%%d"}}\ntags: [fleeting]\n---\n\n{{content}}\n' \
   > "$wiki/.zk/templates/default.md"
 ```
 
-All `zk` commands below assume `-W "$wiki"` (run as if started in the notebook)
-or `cd "$wiki"` first. Always pass `--no-input`, and `-p` on `zk new` (the agent
-has no interactive editor — `-p` prints the path instead of opening one).
+Every operation below runs through a **verb** (see the `[alias]` block above and
+the **Verb surface** section). Call one as `zk -W "$wiki" <verb> [args]` — the
+`-W "$wiki"` targets this notebook and, unlike a no-value global flag, does not
+break alias resolution. The verbs bake in `--no-input` and (for `new`) `-p`, so
+those flags never appear at a call site again.
 
 ## Note Model
 
@@ -210,8 +228,8 @@ The structural truth is only **the directory tree + zk's computed index**. No
 external tracker is needed for llm-wiki to stand on its own:
 
 ```sh
-ls -d "$wiki"/*/                       # the live scope list (enumerated concerns)
-zk -W "$wiki" tag list -f json --quiet # the live keyword + lifecycle index
+ls -d "$wiki"/*/          # the live scope list (enumerated concerns)
+zk -W "$wiki" tags        # the live keyword + lifecycle index (JSON)
 ```
 
 ### Filenames & links (verified zk behavior — do not deviate)
@@ -225,25 +243,36 @@ zk -W "$wiki" tag list -f json --quiet # the live keyword + lifecycle index
 - **No rename safety.** Changing a note's title changes its slug and breaks
   inbound `[[slug]]` links — this is a known zk gap (log it, see below).
 
-## Reach — the pull-only command surface
+## Verb surface — the one command surface
 
-Used by llm-wiki-retrieve; available to any skill. All read-only.
+Every KB read and every mechanical write/maintenance runs through a **verb** (the
+`[alias]` block written at Setup). The verbs are the **single source of truth** for
+these mechanics — no skill inlines a raw `zk list …` / `tag list` / `index` again.
+Call one as `zk -W "$wiki" <verb> [args]`; read verbs emit JSON so the agent can
+parse them (`find` is the human-readable presenter over `scan`). Reads stay
+**pull-only** — reaching a note, never surfacing one.
 
 ```sh
-# Cheap scan: title + tags + path + snippet as JSON (never dump full bodies first)
-zk -W "$wiki" list -m "<query>" -f json --quiet |
-  jq -c '.[] | {title, tags: .metadata.tags, path, snippet: (.body[0:120])}'
+# Reach a note (read-only). `scan` is the workhorse; extra args forward to zk list:
+zk -W "$wiki" scan -m "<query>"                # compact JSON {title,tags,path,snippet}
+zk -W "$wiki" scan --tag <tag>                 # enter by lifecycle/topic tag
+zk -W "$wiki" scan <scope>/ -m "<query>"       # narrow to one concern's directory
+zk -W "$wiki" scan --orphan                    # unlinked notes (--tagless for no-tag)
+zk -W "$wiki" show "<query>"                    # full body of the matches
+zk -W "$wiki" links "<path>"                    # inbound then outbound links, JSON (arg is a PATH)
+zk -W "$wiki" links "<path>" --recursive --max-distance 2   # traverse the graph
+zk -W "$wiki" tags                              # the live keyword + lifecycle index (JSON)
+zk -W "$wiki" graph                             # whole-notebook link graph (JSON)
 
-zk -W "$wiki" list --tag <tag> -f '{{title}}' --quiet     # enter by type/topic
-zk -W "$wiki" tag list -f json --quiet                     # the live keyword index
-zk -W "$wiki" list --link-to  <path> -f '{{title}}' --quiet  # inbound (backlinks)  — arg is a PATH
-zk -W "$wiki" list --linked-by <path> -f '{{title}}' --quiet # outbound
-zk -W "$wiki" list --link-to <path> --recursive --max-distance 2  # traverse the graph
-zk -W "$wiki" graph --format json                          # whole-notebook overview
+# Write / maintenance. The prescribed flags (-i -p, >/dev/null) are baked in:
+printf '%s' "<body>" | zk -W "$wiki" new "<scope>" --title "<Title>"   # create; prints path
+zk -W "$wiki" reindex                           # after any write / move / delete
 ```
 
-- `--link-to` / `--linked-by` take a **path**, not a title. Resolve a title to a
-  path first with `zk list -m "<title>" -f '{{path}}' --quiet`.
+- `links` takes a **path**, not a title. Resolve a title to a path with
+  `zk -W "$wiki" scan -m "<title>"` and read `.path` from its JSON.
+- The verbs carry the *mechanics*; each operation skill adds only the *judgment*
+  (when/why to capture, distill, consolidate, or surface a note).
 
 ## Gap Log
 
