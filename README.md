@@ -37,7 +37,14 @@ partitioned by **Scope** — the directory tree of concerns (`<repo-name>/`, nes
 bounded concerns, or `global/`) — and each carries one **Lifecycle** tag
 (`fleeting` → `active` → `superseded`/`retired`). Kind is a free tag, not reserved.
 
-## Note model (verified zk behavior)
+## Note model
+
+The reserved model is **two axes — Scope (a directory tree of concerns) and an
+internal Lifecycle — with kind left to free tags**. See
+[llm-wiki Note Model — Scope + Lifecycle](../../docs/llm-wiki-note-model.md) for
+the full model and the reasoning behind it.
+
+### Verified zk behavior
 
 - `filename = {{slug title}}` — "Raft leader election" → `raft-leader-election.md`.
 - Links resolve by filename/path, **not** by title: use `[[raft-leader-election]]`
