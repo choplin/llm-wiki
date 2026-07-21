@@ -43,6 +43,9 @@ wiki="${XDG_DATA_HOME:-$HOME/.local/share}/llm-wiki"
 ```
 
 Every llm-wiki skill runs this setup first. It is idempotent — safe to re-run.
+Before running it, set `llm_wiki_base_dir` to this (llm-wiki-base) skill's own
+directory — setup installs the bundled `scripts/walk.sh` (the human `walk` verb)
+into the notebook from there.
 
 ```sh
 wiki="${XDG_DATA_HOME:-$HOME/.local/share}/llm-wiki"
@@ -90,6 +93,9 @@ active = "--tag active"
 #   graph                 — the whole-notebook link graph (JSON)
 #   new   <scope> [flags] — create a note: body from stdin (-i), print path (-p)
 #   reindex               — refresh the index after writes/moves
+#   walk  <query>         — HUMAN-ONLY interactive fzf link walker (needs fzf).
+#                           Agents never use this; they traverse via `links`.
+#                           Runs the bundled script installed at .zk/walk.sh.
 scan  = 'zk --no-input list --quiet "$@" -f json | jq -c ".[] | {title, tags: .metadata.tags, path, snippet: (.body[0:120])}"'
 find  = 'zk scan --match "$*" | jq -r "[.title, (.tags | map(\"#\"+.) | join(\" \")), .snippet] | join(\"  \")"'
 show  = 'zk --no-input list --quiet --match "$*" --format full'
@@ -98,10 +104,20 @@ tags  = 'zk --no-input tag list -f json --quiet'
 graph = 'zk --no-input graph --format json --quiet'
 new     = 'zk --no-input new "$@" -i -p'
 reindex = 'zk --no-input index'
+walk    = 'bash "$ZK_NOTEBOOK_DIR/.zk/walk.sh" "$@"'
 TOML
 # Template: {{content}} is required so `zk new -i` can pipe a body in via stdin.
 printf -- '---\ntitle: {{title}}\ncreated: {{format-date now "%%Y-%%m-%%d"}}\ntags: [fleeting]\n---\n\n{{content}}\n' \
   > "$wiki/.zk/templates/default.md"
+# Install the human-only `walk` script into the notebook so `zk -W "$wiki" walk`
+# is self-contained — the notebook carries its own copy, so a human can run it
+# from any checkout. Source of truth: this skill's scripts/walk.sh; like the
+# config and template it is (re)installed on EVERY setup. `$llm_wiki_base_dir`
+# is THIS (llm-wiki-base) skill's own directory — set it before running setup
+# (the agent resolves it to wherever this skill is loaded from, the same way
+# inception-base references its scripts/inception.sh).
+: "${llm_wiki_base_dir:?set llm_wiki_base_dir to the llm-wiki-base skill directory}"
+install -m 0755 "$llm_wiki_base_dir/scripts/walk.sh" "$wiki/.zk/walk.sh"
 ```
 
 Every operation below runs through a **verb** (see the `[alias]` block above and
@@ -267,10 +283,22 @@ zk -W "$wiki" graph                             # whole-notebook link graph (JSO
 # Write / maintenance. The prescribed flags (-i -p, >/dev/null) are baked in:
 printf '%s' "<body>" | zk -W "$wiki" new "<scope>" --title "<Title>"   # create; prints path
 zk -W "$wiki" reindex                           # after any write / move / delete
+
+# Human-only. Interactive fzf link walker — agents never use this (they traverse
+# with `links`); fzf is REQUIRED (no fzf → walk errors out, it does not degrade):
+zk -W "$wiki" walk "<query>"                    # start from a note, walk links in fzf
 ```
 
 - `links` takes a **path**, not a title. Resolve a title to a path with
   `zk -W "$wiki" scan -m "<title>"` and read `.path` from its JSON.
+- `walk` is the **only human-CLI-facing verb** and the sole verb that needs a
+  dependency beyond zk (fzf). It is a thin wrapper over the bundled
+  `scripts/walk.sh`, installed into the notebook at `.zk/walk.sh` by Setup. Keys:
+  enter moves to the highlighted note keeping the current direction, ctrl-d flips
+  the direction — advancing along this note's outbound links (labelled "in", →in)
+  vs its backlinks (labelled "out", ←out), shown in the prompt — ctrl-o opens
+  `$EDITOR`, esc quits; the preview pane shows the highlighted target's body.
+  Agents keep using `links` — walk is for a human browsing the KB by hand.
 - The verbs carry the *mechanics*; each operation skill adds only the *judgment*
   (when/why to capture, distill, consolidate, or surface a note).
 
