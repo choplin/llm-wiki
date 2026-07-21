@@ -31,9 +31,13 @@ Apply **llm-wiki-base** first (Setup resolves `$wiki`).
 ## Produce an overview of a theme
 
 ```sh
-zk -W "$wiki" scan --tag <theme>                                # notes on the theme (JSON)
-zk -W "$wiki" scan --tag <theme> --recursive --max-distance 2   # how they connect
-zk -W "$wiki" graph                                             # whole-notebook shape (JSON)
+zk -W "$wiki" scan --tag <theme>                # notes on the theme (JSON)
+# how they connect — walk each theme note's links. (`--recursive`/`--max-distance`
+# are link-filter flags: they work on `links`, and are silently IGNORED by
+# `scan --tag` — do not combine them with scan.)
+zk -W "$wiki" scan --tag <theme> | jq -r .path |
+  while read -r p; do zk -W "$wiki" links "$p"; done
+zk -W "$wiki" graph                             # whole-notebook shape (JSON)
 ```
 
 Synthesize the result into a short map: the key notes, how they relate, and gaps

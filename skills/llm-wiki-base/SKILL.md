@@ -178,9 +178,7 @@ not a registry or a set of root notes.
 - **`global`** — belongs to no concern (root-less, cross-cutting knowledge).
 
 Dev (repo / project / branch) is just **one instantiation** of this abstraction;
-the base hardcodes the *abstraction*, not repo/project/branch. (The Repo/Project
-split already latent in the tracker is the same abstraction — a permanent-concern
-axis and a bounded-concern axis — named here, not newly invented.)
+the base hardcodes the *abstraction*, not repo/project/branch.
 
 **The tree carries the structure — no stored metadata:**
 
@@ -285,24 +283,9 @@ Zettelkasten's "tidy project notes at project end; survivors become permanent."
 The **semantics** live here; the drive procedure belongs to llm-wiki-distill
 (see Delegation), not to the base.
 
-### How the old five prefixes are absorbed (no kind tag)
+### Enumerating the live structure
 
-The retired `project-notes` prefixes map onto **Scope alone** — none becomes a
-base `kind` tag:
-
-| Old prefix | Now |
-|-----|-----|
-| `Concept` | A note in a **permanent** concern (a repo, or `global`). No kind tag. |
-| `Decision` / `Proposal` / `Handoff` | A note in whatever concern it arose in (usually **bounded**); distilled up on close. No kind tag. |
-| `PRD` | A note in its project (bounded) / repo scope. The inception-finalize PRD slot is settled separately; the frame is "PRD is one note in its scope, `prd` is a free tag if applied." |
-
-Want to slice by "all decisions" or "all PRDs"? That is a **free domain tag**,
-added by an operation when useful — never a reserved axis.
-
-### Self-contained without Linear (or any tracker)
-
-The structural truth is only **the directory tree + zk's computed index**. No
-external tracker is needed for llm-wiki to stand on its own:
+The structural truth is only **the directory tree + zk's computed index**:
 
 ```sh
 ls -d "$wiki"/*/          # the live scope list (enumerated concerns)

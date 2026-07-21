@@ -82,3 +82,6 @@ zk -W "$wiki" scan --tag <keyword>       # jump into a keyword
 - [ ] Full bodies were read only for notes judged relevant.
 - [ ] Links were followed where surrounding context mattered.
 - [ ] No proactive surfacing beyond what was asked (reach, not recall).
+- [ ] The result names the specific notes that answered the query — or states
+      explicitly that the KB has nothing on it (a clean miss is a valid outcome,
+      silently answering from general knowledge is not).
