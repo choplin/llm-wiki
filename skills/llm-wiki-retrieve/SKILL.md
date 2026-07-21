@@ -28,8 +28,8 @@ recall" — no proactive surfacing.
 
 ### Stage 1 — cheap scan (a map, not the contents)
 
-Return only title + tags + path + snippet + links. Do **not** read full bodies
-yet.
+Return only title + tags + path + snippet (+ the distill footprint). Do **not**
+read full bodies yet.
 
 ```sh
 zk -W "$wiki" scan -m "<query>"
@@ -40,8 +40,15 @@ findable by default; the caller narrows). `scan` forwards these to zk list:
 
 ```sh
 zk -W "$wiki" scan <scope>/ -m "<query>"       # scope to one concern's directory
-zk -W "$wiki" scan --tag active                # by lifecycle (durable layer) or topic (raft)
-zk -W "$wiki" scan --tag "NOT retired"         # drop stale/retired notes (NOT must be uppercase)
+zk -W "$wiki" scan --tag raft                  # by topic tag
+```
+
+Archived notes (root `_archived/`) are **excluded by default** — retired
+material does not pollute reach. Opt in only when the request is explicitly
+about history:
+
+```sh
+LLM_WIKI_INCLUDE_ARCHIVED=1 zk -W "$wiki" scan -m "<query>"
 ```
 
 ### Stage 2 — expand + traverse (only the relevant ones)

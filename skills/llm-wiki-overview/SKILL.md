@@ -20,8 +20,8 @@ user-invocable: true
 Answer "what does the KB know about X?" from the link graph and tags, and — when
 useful — persist that view as a curated hub so the KB stays navigable.
 
-The KB's **structural truth is the directory tree + zk's computed index** (Scope +
-Lifecycle; see llm-wiki-base). A hub is an **optional human-facing convenience**
+The KB's **structural truth is the directory tree + zk's computed index** (the
+Scope axis; see llm-wiki-base). A hub is an **optional human-facing convenience**
 layered on top — *not* part of the reserved model, and *not* a note type. There is
 no `moc` tag: a hub is just a structure file named `_*.md`, which the `_`-prefix
 convention keeps out of reach.
@@ -43,7 +43,7 @@ Synthesize the result into a short map: the key notes, how they relate, and gaps
 
 When an overview is worth keeping, persist it as a **curated hub** — a plain
 structure note named `_<theme>.md` so the `_`-prefix convention keeps it out of
-reach (see llm-wiki-base; no marker tag, it is not a `fleeting`/`active` note):
+reach (see llm-wiki-base; no marker tag, it is not a regular note):
 
 1. Create/edit `_<theme>.md` in the relevant concern's scope directory (or
    `global/`), e.g. `global/_consensus.md`.

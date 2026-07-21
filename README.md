@@ -6,9 +6,9 @@ primary reader/writer; a human can also browse the same KB from the command line
 (no GUI in the loop either way). Retention is exactly what is written to files:
 explicit, visible, git-versionable.
 
-The KB is a **vessel**: it doesn't scatter (scoped, lifecycle-tagged, linked), it
-doesn't bloat (distill + consolidate, no hand-maintained indexes), and it holds
-everything needed. It provides the means to **reach** notes on demand — it does
+The KB is a **vessel**: it doesn't scatter (scoped, linked), it doesn't bloat
+(continuous distill, archive out of reach, no hand-maintained indexes), and it
+holds everything needed. It provides the means to **reach** notes on demand — it does
 not decide *when* to recall or proactively surface them (that is the memory
 layer's job).
 
@@ -58,10 +58,10 @@ there is no second implementation to drift:
 
 | Skill | Description |
 |-------|-------------|
-| `llm-wiki-base` | Shared model: notebook setup, note model (slug filenames, wikilinks, two reserved axes — Scope tree of concerns + internal Lifecycle — with kind left to free tags), the verb command surface, gap-log (delegated, not invoked directly) |
-| `llm-wiki-capture` | Write a finding into the KB as a `fleeting` note (no classification), tagged and linked |
+| `llm-wiki-base` | Shared model: notebook setup, note model (slug filenames, wikilinks, a single reserved axis — the Scope tree of concerns — with distill as the first-class process and kind left to free tags), the verb command surface, gap-log (delegated, not invoked directly) |
+| `llm-wiki-capture` | Write a finding into the KB as a note (no classification, no maturity state), tagged and linked |
 | `llm-wiki-retrieve` | Reach the right note(s) on demand — cheap scan → expand → traverse (pull-only) |
-| `llm-wiki-distill` | Promote `fleeting` → `active`, lift a closed concern's keepers up (distill-up-on-close), consolidate duplicates |
+| `llm-wiki-distill` | Run the distill primitives (consolidate / refresh / split), archive retired notes, drive close-concern when a bounded concern ends |
 | `llm-wiki-overview` | Overview a theme from the graph; keep any optional curated hub + front-door note |
 
 ## Human CLI reference
@@ -75,12 +75,15 @@ the skills use; `find` prints human-readable lines and `walk` is interactive.
 | `find <query>` | Human-readable list of matching notes (title · tags · snippet). |
 | `show <query>` | Full body (title, tags, text) of the matches. |
 | `links <path>` | Inbound then outbound links of a note. The argument is a **path**, not a title; add `--recursive --max-distance N` to traverse the graph. |
-| `tags` | The keyword + lifecycle index. |
+| `tags` | The keyword index. |
 | `walk <query>` | Interactive [fzf](https://github.com/junegunn/fzf) link walker — start from a note and browse its links by hand (**human-only**; agents traverse non-interactively with `links`). |
 
 The remaining verbs are agent-facing: `scan` and `graph` return raw JSON (`find`
-is the thin human presenter over `scan`), and `new` / `reindex` handle writes and
-maintenance. See `llm-wiki-base` for the full verb surface.
+is the thin human presenter over `scan`), and `new` / `archive` / `reindex`
+handle writes and maintenance. Retired notes live under a root `_archived/`
+directory that every verb excludes by default — set
+`LLM_WIKI_INCLUDE_ARCHIVED=1` to include them. See `llm-wiki-base` for the full
+verb surface.
 
 ## Dependencies
 
@@ -98,15 +101,18 @@ maintenance. See `llm-wiki-base` for the full verb surface.
 A single zk notebook at `${XDG_DATA_HOME:-$HOME/.local/share}/llm-wiki/`
 (not tied to Obsidian, though the folder opens in Obsidian if wanted). Notes are
 partitioned by **Scope** — the directory tree of concerns (`<repo-name>/`, nested
-bounded concerns, or `global/`) — and each carries one **Lifecycle** tag
-(`fleeting` → `active` → `superseded`/`retired`). Kind is a free tag, not reserved.
+bounded concerns, or `global/`) — the single reserved axis. There is no
+maturity state: each note carries a distill footprint
+(`created`/`updated`/`distilled`/`distill_count`) in frontmatter, and retired
+notes move to a root `_archived/` directory kept out of reach by default. Kind
+is a free tag, not reserved.
 
 ## Note model
 
-The reserved model is **two axes — Scope (a directory tree of concerns) and an
-internal Lifecycle — with kind left to free tags**. See
-[llm-wiki Note Model — Scope + Lifecycle](docs/note-model.md) for
-the full model and the reasoning behind it.
+The reserved model is **a single axis — Scope (a directory tree of concerns) —
+with distill as the first-class process and kind left to free tags**. See
+[llm-wiki Note Model](docs/note-model.md) for the full model and the reasoning
+behind it.
 
 ### Verified zk behavior
 
