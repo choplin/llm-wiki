@@ -88,7 +88,9 @@ active = "--tag active"
 #                           workhorse behind every "reach a note" read
 #   find  <query>         — human-readable presenter over `scan --match`
 #   show  <query>         — full note (title, tags, body) for full-text matches
-#   links <path> [flags]  — inbound then outbound links of <path> as JSON
+#   links <path> [flags]  — inbound then outbound links of <path> as JSON;
+#                           snippet = the paragraph(s) around the link in the
+#                           source note, i.e. why the two notes connect
 #   tags                  — the keyword index (JSON)
 #   graph                 — the whole-notebook link graph (JSON)
 #   new   <scope> [flags] — create a note: body from stdin (-i), print path (-p)
@@ -99,7 +101,7 @@ active = "--tag active"
 scan  = 'zk --no-input list --quiet "$@" -f json | jq -c ".[] | {title, tags: .metadata.tags, path, snippet: (.body[0:120])}"'
 find  = 'zk scan --match "$*" | jq -r "[.title, (.tags | map(\"#\"+.) | join(\" \")), .snippet] | join(\"  \")"'
 show  = 'zk --no-input list --quiet --match "$*" --format full'
-links = 'p="$1"; shift; { zk --no-input list --quiet --link-to "$p" "$@" -f json | jq -c ".[] | {dir:\"in\", title, path}"; zk --no-input list --quiet --linked-by "$p" "$@" -f json | jq -c ".[] | {dir:\"out\", title, path}"; }'
+links = 'p="$1"; shift; { zk --no-input list --quiet --link-to "$p" "$@" -f json | jq -c ".[] | {dir:\"in\", title, path, snippet: ((.snippets // []) | join(\" … \"))}"; zk --no-input list --quiet --linked-by "$p" "$@" -f json | jq -c ".[] | {dir:\"out\", title, path, snippet: ((.snippets // []) | join(\" … \"))}"; }'
 tags  = 'zk --no-input tag list -f json --quiet'
 graph = 'zk --no-input graph --format json --quiet'
 new     = 'zk --no-input new "$@" -i -p'
@@ -297,7 +299,9 @@ zk -W "$wiki" walk "<query>"                    # start from a note, walk links 
   enter moves to the highlighted note keeping the current direction, ctrl-d flips
   the direction — advancing along this note's outbound links (labelled "in", →in)
   vs its backlinks (labelled "out", ←out), shown in the prompt — ctrl-o opens
-  `$EDITOR`, esc quits; the preview pane shows the highlighted target's body.
+  `$EDITOR`, esc quits; each list row appends the link-context snippet (the
+  paragraph where the link occurs, dimmed) after the title, and the preview
+  pane shows the highlighted target's body.
   Agents keep using `links` — walk is for a human browsing the KB by hand.
 - The verbs carry the *mechanics*; each operation skill adds only the *judgment*
   (when/why to capture, distill, consolidate, or surface a note).

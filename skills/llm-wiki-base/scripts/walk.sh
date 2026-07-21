@@ -23,8 +23,9 @@
 # direction) · ctrl-b = go back to the previous note · ctrl-d = flip the direction
 # · ctrl-o = open in $EDITOR · esc = quit. The header shows the current note
 # (@ title); the prompt labels the advance direction (following this note's
-# outbound links) as "in" (→in) and the backlinks direction as "out" (←out); the
-# preview pane shows the highlighted link target's body.
+# outbound links) as "in" (→in) and the backlinks direction as "out" (←out); each
+# list row appends the link-context snippet (the paragraph where the link occurs,
+# dimmed) after the title; the preview pane shows the highlighted target's body.
 set -euo pipefail
 
 # zk exports ZK_NOTEBOOK_DIR to alias commands; self-invocations re-export it below.
@@ -41,9 +42,16 @@ case "${1:-}" in
     # Map the walk direction to a zk link direction, then reuse the base `links`
     # verb (single source of truth). "fwd" = advance along this note's outbound
     # links (shown to the human as "in"); "back" = its backlinks (shown as "out").
+    # Column 3 is the link-context snippet from the `links` verb — the paragraph
+    # around the link in the source note — flattened to one line (this also strips
+    # tabs, keeping the TSV intact) and dimmed so the title stays prominent.
     if [ "$mode" = "back" ]; then dir="in"; marker="← "; else dir="out"; marker="→ "; fi
     zk -W "$wiki" links "$cur" 2>/dev/null | jq -r --arg d "$dir" --arg m "$marker" '
-      select(.dir == $d) | [.path, ($m + .title)] | @tsv'
+      select(.dir == $d)
+      | [.path, ($m + .title),
+         (if (.snippet // "") == "" then ""
+          else "\u001b[2m" + (.snippet | gsub("\\s+"; " ")) + "\u001b[0m" end)]
+      | @tsv'
     exit 0 ;;
   __preview)
     p="${2:-}"
@@ -119,7 +127,7 @@ export WALK_STATE="$state" ZK_NOTEBOOK_DIR="$wiki"
 # launch screen matches the post-move screens. The list reloads from state after
 # each descend / back / flip.
 "$self" __list | fzf \
-  --delimiter='\t' --with-nth=2.. \
+  --ansi --delimiter='\t' --with-nth=2.. \
   --prompt='walk →in> ' \
   --header="$("$self" __header)" \
   --preview="\"$self\" __preview {1}" \
