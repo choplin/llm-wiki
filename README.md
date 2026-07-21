@@ -32,7 +32,8 @@ namespace mechanism in the standard or the CLI).
 ## Install
 
 ```bash
-skills add ./skills --skill '*' -a claude-code -g -y   # from this working tree (symlink)
+skills add choplin/llm-wiki --skill '*' -a claude-code -g -y   # from the published repo
+skills add ./skills --skill '*' -a claude-code -g -y           # from this working tree (symlink)
 ```
 
 Works for Claude Code, Codex, Cursor, and any other agent the skills CLI
