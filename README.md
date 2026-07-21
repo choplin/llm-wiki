@@ -1,6 +1,6 @@
 # llm-wiki
 
-> Yet another LLM wiki — a thin layer over zk.
+> Super tiny LLM wiki — no engine, just zk.
 
 [Karpathy's LLM Wiki](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f)
 — a wiki an LLM keeps for itself — has inspired plenty of implementations,
