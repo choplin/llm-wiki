@@ -15,6 +15,29 @@ layer's job).
 The idea traces to [Karpathy's LLM Wiki](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f)
 — a wiki an LLM keeps for itself.
 
+## Structure
+
+```
+skills/                  # portable, agent-agnostic Agent Skills
+  llm-wiki-<name>/       #   flat, prefix-namespaced (no group layer — single group repo)
+    SKILL.md
+docs/                    # design / decision records
+```
+
+Skills follow the [Agent Skills](https://agentskills.io) standard and are
+distributed via the [`vercel-labs/skills`](https://github.com/vercel-labs/skills)
+CLI. Names carry the `llm-wiki-` prefix because installs are flat by name (no
+namespace mechanism in the standard or the CLI).
+
+## Install
+
+```bash
+skills add ./skills --skill '*' -a claude-code -g -y   # from this working tree (symlink)
+```
+
+Works for Claude Code, Codex, Cursor, and any other agent the skills CLI
+supports (`-a` takes the agent id, or `'*'` for all).
+
 ## Two entrances, one verb set
 
 llm-wiki has **two entrances that share the same zk verbs**. The verbs (an
@@ -82,7 +105,7 @@ bounded concerns, or `global/`) — and each carries one **Lifecycle** tag
 
 The reserved model is **two axes — Scope (a directory tree of concerns) and an
 internal Lifecycle — with kind left to free tags**. See
-[llm-wiki Note Model — Scope + Lifecycle](../../docs/llm-wiki-note-model.md) for
+[llm-wiki Note Model — Scope + Lifecycle](docs/note-model.md) for
 the full model and the reasoning behind it.
 
 ### Verified zk behavior
