@@ -1,22 +1,27 @@
 # llm-wiki
 
-> Yet another LLM wiki — agent-written, human-browsable, plain Markdown on zk.
+> Yet another LLM wiki — a thin layer over zk.
 
 [Karpathy's LLM Wiki](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f)
-— a wiki an LLM keeps for itself — has inspired plenty of implementations.
-This one is defined by three choices:
+— a wiki an LLM keeps for itself — has inspired plenty of implementations,
+and many of them ship an engine: a desktop app, a backend, a web UI for the
+human and an MCP server for the agent. This one is five skill files and a
+[zk](https://github.com/zk-org/zk) notebook:
 
-- **No custom engine.** The KB is a plain-Markdown
-  [zk](https://github.com/zk-org/zk) notebook. Notes are files; retention is
-  exactly what is written to them — explicit, visible, git-versionable.
-- **Two entrances, one verb set.** An AI agent operates the KB through
-  [Agent Skills](https://agentskills.io); a human browses the same notebook
-  from the command line. Both drive the same zk verbs (aliases baked into the
-  notebook config), so there is no second implementation to drift.
-- **Distill over hoard.** Capture is a dumb, friction-free drop; a first-class
-  **distill** process (consolidate / refresh / split) keeps the KB
-  high-signal, and retired notes are archived out of reach instead of
-  deleted — so the wiki neither scatters nor bloats.
+- **No engine.** The KB is a plain-Markdown zk notebook — notes are files,
+  retention is exactly what is written to them, and everything is
+  git-versionable. The skills add only judgment (when and why to write,
+  rework, or reach); every mechanic is a zk verb.
+- **One verb set, no drift.** Because the agent drives the same mature CLI a
+  human uses, there is no split between a human GUI and an agent API — both
+  entrances share the identical zk verbs, so there is no second
+  implementation to fall out of sync.
+- **Distill, not just lint.** Health checks (broken links, orphans) are table
+  stakes; the hard problem is the knowledge *lifecycle*. Here capture is a
+  dumb, friction-free drop, and a first-class **distill** process —
+  consolidate / refresh / split, each leaving a footprint in frontmatter —
+  keeps the KB high-signal, with retired notes archived out of reach instead
+  of deleted.
 
 ## Quick start
 
