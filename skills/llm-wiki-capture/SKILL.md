@@ -7,9 +7,9 @@ description: >-
   state (reworking is distill's job), tags it with free topical tags, and links
   it to related existing notes. Use when a valuable finding, decision, or fact
   surfaces during work and should be kept without deciding where to put it.
-  Triggers on "llm-wiki に書いて", "この知見を wiki に残して", "KB にメモして",
-  "capture this into the wiki", "save this finding to the KB", "note this in
-  llm-wiki". Should NOT trigger for shaping/merging notes already captured (use
+  Triggers on "capture this into the wiki", "save this finding to the KB",
+  "note this in llm-wiki", "remember this in the wiki". Should NOT trigger for
+  shaping/merging notes already captured (use
   llm-wiki-distill), team-shared repo docs (README/docs/), or transient state for
   resuming the same session shortly (keep it in session).
 allowed-tools: Read, Write, Edit, Glob, Bash

@@ -7,8 +7,7 @@ description: >-
   a bounded concern ends — so the KB stays high-signal and does not bloat.
   Use at a wrap-up, when captures have piled up, when several notes cover the
   same thing, when notes have gone stale, or when a project/branch ends.
-  Triggers on "llm-wiki を蒸留して", "KB のノートを統合して", "wiki を
-  片付けて", "古いノートを見直して", "distill the wiki", "consolidate the KB",
+  Triggers on "distill the wiki", "consolidate the KB", "tidy up the wiki",
   "refresh stale notes", "close out this concern". Should NOT trigger for the
   initial quick capture (use llm-wiki-capture) or for building
   structure/overview notes (use llm-wiki-overview).

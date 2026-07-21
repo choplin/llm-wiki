@@ -6,10 +6,10 @@ description: >-
   a curated hub note (a plain `_*.md` structure file kept out of reach) plus a
   single front-door note. Structure notes are an optional consumer-layer
   convenience, not a reserved axis of the model. Use to answer "what do I know about
-  X?" or to refresh the KB's navigable structure. Triggers on "llm-wiki の X に
-  ついての俯瞰", "KB の全体像を見せて", "MOC を作って/更新して", "wiki の目次を
-  整えて", "what does the KB know about X", "build a map of content", "overview of
-  the wiki". Should NOT trigger for finding one specific note (use
+  X?" or to refresh the KB's navigable structure. Triggers on "what does the
+  KB know about X", "give me an overview of the wiki", "build a map of
+  content", "update the hub note". Should NOT trigger for finding one specific
+  note (use
   llm-wiki-retrieve) or promoting/merging notes (use llm-wiki-distill).
 allowed-tools: Read, Write, Edit, Glob, Bash
 user-invocable: true

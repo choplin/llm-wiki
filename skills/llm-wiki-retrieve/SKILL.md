@@ -6,9 +6,9 @@ description: >-
   scan (title + tags + snippet + links as JSON) over the zk notebook, then
   expands only the notes that matter, and follows [[wikilinks]] to gather
   context. Use before researching a topic from scratch, to check what the KB
-  already knows. Triggers on "llm-wiki で調べて", "KB に何かあるか見て", "wiki
-  から関連ノートを引いて", "what does the wiki know about X", "retrieve from the
-  KB", "search llm-wiki". This is pull-only reach — it does not decide when to
+  already knows. Triggers on "what does the wiki know about X", "check the KB
+  for this", "retrieve from the KB", "search llm-wiki". This is pull-only
+  reach — it does not decide when to
   recall or proactively surface notes (that is the memory layer's job). Should
   NOT trigger for writing notes (use llm-wiki-capture).
 allowed-tools: Read, Glob, Bash
