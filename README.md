@@ -82,12 +82,12 @@ The full model and the reasoning behind it: [docs/note-model.md](docs/note-model
 
 | Skill | Description |
 |-------|-------------|
-| `llm-wiki-init` | Provision or update the notebook config — the deliberate deploy step; idempotently (re)writes config, template, and the human verbs via `scripts/setup.sh` |
+| `llm-wiki-init` | Owns the deployable payload (verb aliases, note template, `walk.sh`) and installs it into the notebook via `scripts/setup.sh` — the deliberate, idempotent deploy step |
 | `llm-wiki-capture` | Write a finding into the KB as a note (no classification, no maturity state), tagged and linked |
 | `llm-wiki-retrieve` | Reach the right note(s) on demand — cheap scan → expand → traverse (pull-only) |
 | `llm-wiki-distill` | Run the distill primitives (consolidate / refresh / split), archive retired notes, drive close-concern when a bounded concern ends |
 | `llm-wiki-overview` | Overview a theme from the graph; keep any optional curated hub + front-door note |
-| `llm-wiki-base` | Shared model the other skills delegate to: notebook setup, note model, the verb command surface, gap-log |
+| `llm-wiki-base` | Shared model the other skills delegate to: notebook location, note model, the verb command surface, gap-log |
 
 ## Human CLI reference
 
@@ -117,6 +117,11 @@ verb surface.
 skills/                  # portable, agent-agnostic Agent Skills
   llm-wiki-<name>/       #   flat, prefix-namespaced (no group layer — single group repo)
     SKILL.md
+  llm-wiki-init/         #   owns the deployable payload + the installer
+    assets/config.toml   #     verb aliases → notebook .zk/config.toml
+    assets/default.md    #     note template → notebook .zk/templates/
+    scripts/walk.sh      #     human link walker → notebook .zk/
+    scripts/setup.sh     #     copies the above into the notebook (idempotent)
 docs/                    # design / decision records
 ```
 

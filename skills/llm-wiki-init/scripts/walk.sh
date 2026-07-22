@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # walk.sh — human-only interactive link walker for an llm-wiki (zk) notebook.
 #
-# The `walk` verb (see llm-wiki-base [alias]) execs this. It is the ONE human-CLI
+# The `walk` verb (see ../assets/config.toml [alias]) execs this. It is the ONE human-CLI
 # entry that agents never use — agents traverse links non-interactively via the
 # `links` verb. fzf is a REQUIRED dependency: with no fzf, walk errors out (it does
-# not degrade). base setup installs a copy into "$notebook/.zk/walk.sh" so the
+# not degrade). setup.sh installs a copy into "$notebook/.zk/walk.sh" so the
 # notebook is self-contained and a human can run `zk -W "$wiki" walk <query>`
 # from any checkout.
 #

@@ -3,11 +3,12 @@ name: llm-wiki-base
 description: >-
   Shared model for the llm-wiki skill family — a plain-Markdown knowledge base
   (KB) that an AI agent builds and maintains through the zk CLI over Bash. Owns
-  the notebook location and one-time setup, the note model (slug filenames,
-  wikilinks, a single reserved axis — Scope, a directory tree of concerns —
-  with distill as the first-class process, archive as a location, and note kind
-  left to free tags), the reach (pull-only query/traverse) command surface, and
-  the gap-log habit.
+  the notebook location, the note model (slug filenames, wikilinks, a single
+  reserved axis — Scope, a directory tree of concerns — with distill as the
+  first-class process, archive as a location, and note kind left to free tags),
+  the reach (pull-only query/traverse) command surface, and the gap-log habit.
+  The deployable artifacts themselves (config.toml verb aliases, note template,
+  walk.sh) and the setup script that installs them live in llm-wiki-init.
   llm-wiki-capture / -retrieve / -distill / -overview delegate here to resolve
   the notebook and apply the model before reading or writing. Use this skill when
   another llm-wiki skill asks to resolve the notebook or apply the KB model. Not
@@ -44,27 +45,27 @@ The notebook is a single zk notebook at:
 wiki="${XDG_DATA_HOME:-$HOME/.local/share}/llm-wiki"
 ```
 
-Every llm-wiki skill runs setup first, by executing the bundled
-**`scripts/setup.sh`** (next to this SKILL.md). That script is the single source
-of truth for the deployable config — it writes the zk `config.toml` (the verb
-`[alias]` block), the note template, and installs the human-only `walk.sh` into
-the notebook. It is **idempotent** (a full rewrite every run, not a diff), so
-re-running is always safe and is exactly how an existing notebook picks up new
-aliases after a `git pull`.
+**This skill holds the model; llm-wiki-init holds the payload.** The deployable
+artifacts — the zk `config.toml` (the verb `[alias]` block), the note template,
+and the human-only `walk.sh` — are files under **llm-wiki-init**
+(`assets/`, `scripts/`), and its `scripts/setup.sh` installs them into the
+notebook. Every llm-wiki skill runs that setup first. It is **idempotent** (it
+overwrites every artifact on each run, never diffs), so re-running is always
+safe and is exactly how an existing notebook picks up new aliases after a
+`git pull`.
 
 ```sh
-# Resolve this (llm-wiki-base) skill's own directory, then run setup. The agent
-# resolves the skill dir to wherever this skill is loaded from (the same way
-# inception-base references its scripts/inception.sh). setup.sh self-locates its
-# bundled walk.sh, needs no other input, and prints the notebook path.
-bash "$llm_wiki_base_dir/scripts/setup.sh"
+# Resolve the llm-wiki-init skill's directory (the agent resolves it to wherever
+# that skill is loaded from), then run setup. setup.sh self-locates its own
+# assets, needs no other input, and prints the notebook path.
+bash "$llm_wiki_init_dir/scripts/setup.sh"
 wiki="${XDG_DATA_HOME:-$HOME/.local/share}/llm-wiki"   # for the verb calls below
 ```
 
 The verbs it installs — `scan` / `find` / `show` / `links` / `tags` / `graph` /
 `new` / `archive` / `reindex` / `walk` / `browse` — are documented in
 **Verb surface** below (what each does, when to reach for it); their
-implementation and the rationale comments live in `scripts/setup.sh`.
+implementation lives in `llm-wiki-init/assets/config.toml`.
 
 Every operation below runs through a **verb**. Call one as
 `zk -W "$wiki" <verb> [args]` — the `-W "$wiki"` targets this notebook and,
@@ -74,7 +75,8 @@ again.
 
 > Setting up or updating llm-wiki as a deliberate act (first install, or a
 > forced config refresh after pulling new skill versions) is the
-> **llm-wiki-init** skill — a thin front door that just runs `scripts/setup.sh`.
+> **llm-wiki-init** skill itself — invoke it directly instead of hand-running
+> the script.
 
 ## Note Model
 
@@ -264,7 +266,7 @@ zk -W "$wiki" reindex                           # after any write / move / delet
 # Human-only. Interactive fzf verbs — agents never use these (they read via
 # `scan`/`links`); fzf is REQUIRED (no fzf → they error out, they do not degrade):
 zk -W "$wiki" walk "<query>"                    # start from a note, walk links in fzf
-zk -W "$wiki" browse                            # fzf-pick a note of the current concern (git-resolved from $PWD)
+zk -W "$wiki" browse                            # fzf-pick a note of the current concern (git-resolved from the caller's dir)
 zk -W "$wiki" browse <scope>/                   # fzf-pick over an explicit scope (args forward to scan)
 ```
 
@@ -273,7 +275,8 @@ zk -W "$wiki" browse <scope>/                   # fzf-pick over an explicit scop
 - `walk` and `browse` are the **only human-CLI-facing verbs** and the sole verbs
   that need a dependency beyond zk (fzf).
 - `walk` is a thin wrapper over the bundled
-  `scripts/walk.sh`, installed into the notebook at `.zk/walk.sh` by Setup. Keys:
+  `llm-wiki-init/scripts/walk.sh`, installed into the notebook at `.zk/walk.sh` by
+  setup. Keys:
   enter moves to the highlighted note keeping the current direction, ctrl-d flips
   the direction — advancing along this note's outbound links (labelled "in", →in)
   vs its backlinks (labelled "out", ←out), shown in the prompt — ctrl-o opens
@@ -285,11 +288,16 @@ zk -W "$wiki" browse <scope>/                   # fzf-pick over an explicit scop
   snippet), so fzf's query narrows by title and tag alike (type `#raft` to bite
   on the tag). Enter prints the selected note's notebook-relative path, ctrl-o
   opens it in `$EDITOR`, the preview pane shows the body, esc quits. With no
-  args it scopes to the **current concern** (the same git resolution as Setup,
-  run from the caller's cwd; falls back to the whole notebook when there is no
-  repo or no matching scope directory); any args replace that default and
-  forward to `scan`, so `browse global/` or `browse <scope>/ --tag raft`
-  compose as usual. Agents keep using `scan` — browse is fzf-interactive.
+  args it scopes to the **current concern**, falling back to the whole notebook
+  when there is no repo or no matching scope directory; any args replace that
+  default and forward to `scan`, so `browse global/` or
+  `browse <scope>/ --tag raft` compose as usual. Agents keep using `scan` —
+  browse is fzf-interactive.
+  **Caveat worth knowing when writing any alias:** zk chdir's into the notebook
+  before executing an alias, so inside one `$PWD` is the notebook, not the
+  caller's directory — `browse` resolves the concern by running git against
+  `$OLDPWD` (which zk's own `cd` sets to the caller's dir; it is not inherited
+  from the caller's shell). Verified on zk 0.15.5.
 - The verbs carry the *mechanics*; each operation skill adds only the *judgment*
   (when/why to capture, distill, consolidate, or surface a note).
 
