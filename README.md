@@ -82,6 +82,7 @@ The full model and the reasoning behind it: [docs/note-model.md](docs/note-model
 
 | Skill | Description |
 |-------|-------------|
+| `llm-wiki-init` | Provision or update the notebook config — the deliberate deploy step; idempotently (re)writes config, template, and the human verbs via `scripts/setup.sh` |
 | `llm-wiki-capture` | Write a finding into the KB as a note (no classification, no maturity state), tagged and linked |
 | `llm-wiki-retrieve` | Reach the right note(s) on demand — cheap scan → expand → traverse (pull-only) |
 | `llm-wiki-distill` | Run the distill primitives (consolidate / refresh / split), archive retired notes, drive close-concern when a bounded concern ends |
@@ -101,6 +102,7 @@ the skills use; `find` prints human-readable lines and `walk` is interactive.
 | `links <path>` | Inbound then outbound links of a note. The argument is a **path**, not a title; add `--recursive --max-distance N` to traverse the graph. |
 | `tags` | The keyword index. |
 | `walk <query>` | Interactive [fzf](https://github.com/junegunn/fzf) link walker — start from a note and browse its links by hand (**human-only**; agents traverse non-interactively with `links`). |
+| `browse [filters…]` | Interactive [fzf](https://github.com/junegunn/fzf) note picker — narrow by title and `#tag` at once, enter prints the path, ctrl-o edits. No args scopes to the current repo's concern; args forward to `scan` (**human-only**; agents use `scan`). |
 
 The remaining verbs are agent-facing: `scan` and `graph` return raw JSON (`find`
 is the thin human presenter over `scan`), and `new` / `archive` / `reindex`

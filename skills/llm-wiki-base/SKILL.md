@@ -44,109 +44,37 @@ The notebook is a single zk notebook at:
 wiki="${XDG_DATA_HOME:-$HOME/.local/share}/llm-wiki"
 ```
 
-Every llm-wiki skill runs this setup first. It is idempotent — safe to re-run.
-Before running it, set `llm_wiki_base_dir` to this (llm-wiki-base) skill's own
-directory — setup installs the bundled `scripts/walk.sh` (the human `walk` verb)
-into the notebook from there.
+Every llm-wiki skill runs setup first, by executing the bundled
+**`scripts/setup.sh`** (next to this SKILL.md). That script is the single source
+of truth for the deployable config — it writes the zk `config.toml` (the verb
+`[alias]` block), the note template, and installs the human-only `walk.sh` into
+the notebook. It is **idempotent** (a full rewrite every run, not a diff), so
+re-running is always safe and is exactly how an existing notebook picks up new
+aliases after a `git pull`.
 
 ```sh
-wiki="${XDG_DATA_HOME:-$HOME/.local/share}/llm-wiki"
-if [ ! -d "$wiki/.zk" ]; then
-  mkdir -p "$wiki"
-  zk --no-input init "$wiki" >/dev/null
-fi
-# The config and template are skill-owned and fully generated, so (re)write them
-# on EVERY setup — not just first init — so existing notebooks pick up changes
-# (e.g. new aliases) too. Both writes are idempotent.
-# Config: slug filenames (so [[slug]] wikilinks resolve), wiki links, hashtags.
-# `ignore` keeps plumbing files (named _*.md at ANY depth, e.g. _gaps.md or
-# global/_consensus.md) out of the index and out of reach — the reserved
-# reach-exclusion mechanism for files that should NEVER be reachable. `**/_*.md`
-# matches root and nested alike (a bare `_*.md` would only match the notebook
-# root). Archived notes are NOT ignored — they stay in the index (so slug links
-# to them keep resolving) and are excluded from reach by the verbs' default
-# `-x _archived` filter instead, which is opt-in-able; `ignore` would make them
-# unreachable, period. `-x` matches a literal path prefix (no globs), which is
-# why archive collects everything under the single root `_archived/` directory.
-# The [alias] block bakes in the zk verbs — the single source of truth for KB
-# mechanics (see "Verb surface" below): every skill routes its reads/maintenance
-# through a verb, never a raw `zk list …`/`index` again. Invoke a verb as
-# `zk -W "$wiki" <verb>` (the operation skills call them this way); note that a
-# *no-value* global flag before the verb name breaks zk's alias resolution
-# (`zk --no-input find …` fails), so each verb bakes `--no-input` inside
-# instead. Verified on zk 0.15.5.
-cat > "$wiki/.zk/config.toml" <<'TOML'
-[note]
-filename = "{{slug title}}"
-template = "default.md"
-ignore = ["**/_*.md"]
-[format.markdown]
-link-format = "wiki"
-hashtags = true
-[alias]
-# Verbs = the one place KB mechanics live. Read verbs emit JSON as the canonical
-# machine surface (agents parse it); `find` is the thin human presenter over
-# `scan`. Every verb forwards extra args to the underlying zk command, so
-# filters compose: `scan --tag raft`, `scan <scope>/ --match x`,
-# `scan --orphan`, `links <path> --recursive --max-distance 2`.
-# Reach and aggregate verbs exclude the root `_archived/` directory by default;
-# set LLM_WIKI_INCLUDE_ARCHIVED=1 to include archived notes in any verb's
-# result. The exclusion is prepended with `set -- -x _archived "$@"` — NOT via
-# an unquoted variable — because zk runs aliases through $SHELL and zsh does
-# not word-split unquoted variables (a "$excl" holding "-x _archived" reaches
-# zk as one useless argument; verified).
-#   scan  [filters…]      — compact JSON map {title,tags,path,snippet,updated,
-#                           distilled,distill_count}; the workhorse behind every
-#                           "reach a note" read and the distill-selection scan
-#   find  <query>         — human-readable presenter over `scan --match`
-#   show  <query>         — full note (title, tags, body) for full-text matches
-#   links <path> [flags]  — inbound then outbound links of <path> as JSON;
-#                           snippet = the paragraph(s) around the link in the
-#                           source note, i.e. why the two notes connect
-#   tags                  — the keyword index (JSONL {name,count}; aggregated
-#                           from `zk list` via jq because `zk tag list` cannot
-#                           filter, so the `_archived` exclusion applies here too)
-#   graph                 — the whole-notebook link graph (JSON)
-#   new   <scope> [flags] — create a note: body from stdin (-i), print path (-p)
-#   archive <path>…       — move notes to root `_archived/<scope path>/` and
-#                           reindex; retirement is a location, not a tag
-#   reindex               — refresh the index after writes/moves
-#   walk  <query>         — HUMAN-ONLY interactive fzf link walker (needs fzf).
-#                           Agents never use this; they traverse via `links`.
-#                           Runs the bundled script installed at .zk/walk.sh.
-scan  = '[ -z "$LLM_WIKI_INCLUDE_ARCHIVED" ] && set -- -x _archived "$@"; zk --no-input list --quiet "$@" -f json | jq -c ".[] | {title, tags: (.metadata.tags // []), path, snippet: (.body[0:120]), updated: .metadata.updated, distilled: .metadata.distilled, distill_count: .metadata.distill_count}"'
-find  = 'zk scan --match "$*" | jq -r "[.title, (.tags | map(\"#\"+.) | join(\" \")), .snippet] | join(\"  \")"'
-show  = 'q="$*"; set --; [ -z "$LLM_WIKI_INCLUDE_ARCHIVED" ] && set -- -x _archived; zk --no-input list --quiet "$@" --match "$q" --format full'
-links = 'p="$1"; shift; [ -z "$LLM_WIKI_INCLUDE_ARCHIVED" ] && set -- -x _archived "$@"; { zk --no-input list --quiet --link-to "$p" "$@" -f json | jq -c ".[] | {dir:\"in\", title, path, snippet: ((.snippets // []) | join(\" … \"))}"; zk --no-input list --quiet --linked-by "$p" "$@" -f json | jq -c ".[] | {dir:\"out\", title, path, snippet: ((.snippets // []) | join(\" … \"))}"; }'
-tags  = '[ -z "$LLM_WIKI_INCLUDE_ARCHIVED" ] && set -- -x _archived "$@"; zk --no-input list --quiet "$@" -f json | jq -c "[.[] | (.metadata.tags // [])[]] | group_by(.) | map({name: .[0], count: length}) | sort_by(-.count)[]"'
-graph = '[ -z "$LLM_WIKI_INCLUDE_ARCHIVED" ] && set -- -x _archived "$@"; zk --no-input graph --format json --quiet "$@"'
-new     = 'zk --no-input new "$@" -i -p'
-archive = 'for p in "$@"; do d="_archived/$(dirname "$p")"; mkdir -p "$ZK_NOTEBOOK_DIR/$d"; mv "$ZK_NOTEBOOK_DIR/$p" "$ZK_NOTEBOOK_DIR/$d/"; done; zk --no-input index'
-reindex = 'zk --no-input index'
-walk    = 'bash "$ZK_NOTEBOOK_DIR/.zk/walk.sh" "$@"'
-TOML
-# Template: {{content}} is required so `zk new -i` can pipe a body in via stdin.
-# Frontmatter carries the distill footprint (see "Note Model"): created/updated
-# start at today, distilled empty (= never distilled), distill_count 0. tags
-# starts empty — capture adds free topical tags, never a maturity state.
-printf -- '---\ntitle: {{title}}\ncreated: {{format-date now "%%Y-%%m-%%d"}}\nupdated: {{format-date now "%%Y-%%m-%%d"}}\ndistilled:\ndistill_count: 0\ntags: []\n---\n\n{{content}}\n' \
-  > "$wiki/.zk/templates/default.md"
-# Install the human-only `walk` script into the notebook so `zk -W "$wiki" walk`
-# is self-contained — the notebook carries its own copy, so a human can run it
-# from any checkout. Source of truth: this skill's scripts/walk.sh; like the
-# config and template it is (re)installed on EVERY setup. `$llm_wiki_base_dir`
-# is THIS (llm-wiki-base) skill's own directory — set it before running setup
-# (the agent resolves it to wherever this skill is loaded from, the same way
-# inception-base references its scripts/inception.sh).
-: "${llm_wiki_base_dir:?set llm_wiki_base_dir to the llm-wiki-base skill directory}"
-install -m 0755 "$llm_wiki_base_dir/scripts/walk.sh" "$wiki/.zk/walk.sh"
+# Resolve this (llm-wiki-base) skill's own directory, then run setup. The agent
+# resolves the skill dir to wherever this skill is loaded from (the same way
+# inception-base references its scripts/inception.sh). setup.sh self-locates its
+# bundled walk.sh, needs no other input, and prints the notebook path.
+bash "$llm_wiki_base_dir/scripts/setup.sh"
+wiki="${XDG_DATA_HOME:-$HOME/.local/share}/llm-wiki"   # for the verb calls below
 ```
 
-Every operation below runs through a **verb** (see the `[alias]` block above and
-the **Verb surface** section). Call one as `zk -W "$wiki" <verb> [args]` — the
-`-W "$wiki"` targets this notebook and, unlike a no-value global flag, does not
-break alias resolution. The verbs bake in `--no-input` and (for `new`) `-p`, so
-those flags never appear at a call site again.
+The verbs it installs — `scan` / `find` / `show` / `links` / `tags` / `graph` /
+`new` / `archive` / `reindex` / `walk` / `browse` — are documented in
+**Verb surface** below (what each does, when to reach for it); their
+implementation and the rationale comments live in `scripts/setup.sh`.
+
+Every operation below runs through a **verb**. Call one as
+`zk -W "$wiki" <verb> [args]` — the `-W "$wiki"` targets this notebook and,
+unlike a no-value global flag, does not break alias resolution. The verbs bake
+in `--no-input` and (for `new`) `-p`, so those flags never appear at a call site
+again.
+
+> Setting up or updating llm-wiki as a deliberate act (first install, or a
+> forced config refresh after pulling new skill versions) is the
+> **llm-wiki-init** skill — a thin front door that just runs `scripts/setup.sh`.
 
 ## Note Model
 
@@ -333,15 +261,18 @@ printf '%s' "<body>" | zk -W "$wiki" new "<scope>" --title "<Title>"   # create;
 zk -W "$wiki" archive "<scope>/<slug>.md" …     # retire: move to _archived/<scope>/, reindex
 zk -W "$wiki" reindex                           # after any write / move / delete
 
-# Human-only. Interactive fzf link walker — agents never use this (they traverse
-# with `links`); fzf is REQUIRED (no fzf → walk errors out, it does not degrade):
+# Human-only. Interactive fzf verbs — agents never use these (they read via
+# `scan`/`links`); fzf is REQUIRED (no fzf → they error out, they do not degrade):
 zk -W "$wiki" walk "<query>"                    # start from a note, walk links in fzf
+zk -W "$wiki" browse                            # fzf-pick a note of the current concern (git-resolved from $PWD)
+zk -W "$wiki" browse <scope>/                   # fzf-pick over an explicit scope (args forward to scan)
 ```
 
 - `links` takes a **path**, not a title. Resolve a title to a path with
   `zk -W "$wiki" scan -m "<title>"` and read `.path` from its JSON.
-- `walk` is the **only human-CLI-facing verb** and the sole verb that needs a
-  dependency beyond zk (fzf). It is a thin wrapper over the bundled
+- `walk` and `browse` are the **only human-CLI-facing verbs** and the sole verbs
+  that need a dependency beyond zk (fzf).
+- `walk` is a thin wrapper over the bundled
   `scripts/walk.sh`, installed into the notebook at `.zk/walk.sh` by Setup. Keys:
   enter moves to the highlighted note keeping the current direction, ctrl-d flips
   the direction — advancing along this note's outbound links (labelled "in", →in)
@@ -350,6 +281,15 @@ zk -W "$wiki" walk "<query>"                    # start from a note, walk links 
   paragraph where the link occurs, dimmed) after the title, and the preview
   pane shows the highlighted target's body.
   Agents keep using `links` — walk is for a human browsing the KB by hand.
+- `browse` is the human note picker: rows show title + `#tags` (+ dimmed
+  snippet), so fzf's query narrows by title and tag alike (type `#raft` to bite
+  on the tag). Enter prints the selected note's notebook-relative path, ctrl-o
+  opens it in `$EDITOR`, the preview pane shows the body, esc quits. With no
+  args it scopes to the **current concern** (the same git resolution as Setup,
+  run from the caller's cwd; falls back to the whole notebook when there is no
+  repo or no matching scope directory); any args replace that default and
+  forward to `scan`, so `browse global/` or `browse <scope>/ --tag raft`
+  compose as usual. Agents keep using `scan` — browse is fzf-interactive.
 - The verbs carry the *mechanics*; each operation skill adds only the *judgment*
   (when/why to capture, distill, consolidate, or surface a note).
 
