@@ -1,0 +1,4 @@
+# Global zk configuration installed by llm-wiki-init.
+# This makes the llm-wiki notebook available from any working directory.
+[notebook]
+dir = "__LLM_WIKI_DIR__"

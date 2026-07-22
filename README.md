@@ -48,9 +48,8 @@ The notebook is created on first use at
 — same notebook, same verbs:
 
 ```bash
-wiki="${XDG_DATA_HOME:-$HOME/.local/share}/llm-wiki"
-zk -W "$wiki" find "raft"      # human-readable search: title · tags · snippet
-zk -W "$wiki" walk "raft"      # interactive fzf link walker
+zk find "raft"      # human-readable search: title · tags · snippet
+zk walk "raft"      # interactive fzf link walker
 ```
 
 ## How it works
@@ -91,9 +90,9 @@ The full model and the reasoning behind it: [docs/note-model.md](docs/note-model
 
 ## Human CLI reference
 
-Run these against the notebook with `zk -W "$wiki" <verb> [args]`, where
-`wiki="${XDG_DATA_HOME:-$HOME/.local/share}/llm-wiki"`. These are the same verbs
-the skills use; `find` prints human-readable lines and `walk` is interactive.
+After setup, run these from any directory as `zk <verb> [args]`. Setup registers
+llm-wiki as zk's default notebook; `find` prints human-readable lines and `walk`
+is interactive.
 
 | Verb | What it does |
 |------|--------------|
