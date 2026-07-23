@@ -69,16 +69,26 @@ source "${XDG_DATA_HOME:-$HOME/.local/share}/llm-wiki/.zk/completions/llm-wiki.b
 ```
 
 ```zsh
-# zsh
+# zsh: source directly
 source "${XDG_DATA_HOME:-$HOME/.local/share}/llm-wiki/.zk/completions/llm-wiki.zsh"
 ```
 
-Add the matching `source` line to your own `.bashrc` or `.zshrc` if you want it
-on every shell. The integration adds configured aliases to `zk <TAB>` while
-retaining native zk commands and an existing function-based zk completion when
-one is present. Bash is the base artifact and may also be usable in environments
-that explicitly load bash-completion files, but llm-wiki tests and documents
-only bash and zsh.
+For zsh's normal `fpath` delivery instead, symlink the same file under the
+function name expected by its `#compdef` header, then run `compinit` as usual:
+
+```zsh
+mkdir -p ~/.zsh/functions
+ln -s "${XDG_DATA_HOME:-$HOME/.local/share}/llm-wiki/.zk/completions/llm-wiki.zsh" \
+  ~/.zsh/functions/_llm_wiki_zk
+```
+
+If `compinit` is using an old completion dump after adding the symlink, remove
+that dump once and start a new shell so zsh rebuilds it.
+
+The integration adds configured aliases to `zk <TAB>` while retaining native zk
+commands and an existing function-based zk completion when one is present. Bash
+is the base artifact and may also be usable in environments that explicitly load
+bash-completion files, but llm-wiki tests and documents only bash and zsh.
 
 ## How it works
 

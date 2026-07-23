@@ -1,8 +1,16 @@
+#compdef zk
+#
 # llm-wiki completion for zsh.
 #
-# Source this file after setup. It initializes zsh's completion system when
-# needed, adds configured zk aliases at the first argument, and delegates to an
-# existing zk completion function when one is registered.
+# This file supports both usual zsh delivery modes:
+#
+# - Source it after setup; it initializes the completion system when needed and
+#   registers itself for `zk`.
+# - Symlink it into a directory on fpath as `_llm_wiki_zk`; compinit discovers
+#   the #compdef line and autoloads the matching function on demand.
+#
+# In either mode it adds configured zk aliases at the first argument and
+# delegates to an existing zk completion function when one is registered.
 
 _llm_wiki_zk_candidates()
 {
@@ -24,12 +32,12 @@ if (( ! ${+_LLM_WIKI_ZK_PREVIOUS_COMPLETION} )); then
     typeset -g _LLM_WIKI_ZK_PREVIOUS_COMPLETION=${_comps[zk]-}
 fi
 
-_llm_wiki_zk_completion()
+_llm_wiki_zk()
 {
     local previous=$_LLM_WIKI_ZK_PREVIOUS_COMPLETION
     local result=1
 
-    if [[ -n $previous && $previous != _llm_wiki_zk_completion ]]; then
+    if [[ -n $previous && $previous != _llm_wiki_zk ]]; then
         if (( ! $+functions[$previous] )); then
             autoload -Uz "$previous" 2>/dev/null || true
         fi
@@ -48,4 +56,4 @@ _llm_wiki_zk_completion()
     return result
 }
 
-compdef _llm_wiki_zk_completion zk
+compdef _llm_wiki_zk zk
