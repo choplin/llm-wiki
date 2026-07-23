@@ -28,8 +28,8 @@ source of truth:
 |------|-------------|------------|
 | `assets/config.toml` | `.zk/config.toml` | the verb `[alias]` block — the KB mechanics |
 | `assets/default.md` | `.zk/templates/default.md` | the note template (distill footprint frontmatter) |
-| `assets/completions/llm-wiki.bash` | `.zk/completions/llm-wiki.bash` | opt-in bash completion augmentation |
-| `assets/completions/llm-wiki.zsh` | `.zk/completions/llm-wiki.zsh` | opt-in zsh completion augmentation |
+| `assets/llm-wiki.bash` | `.zk/completions/llm-wiki.bash` | opt-in bash completion augmentation |
+| `assets/llm-wiki.zsh` | `.zk/completions/llm-wiki.zsh` | opt-in zsh completion augmentation |
 | `scripts/walk.sh` | `.zk/walk.sh` | the human-only fzf link walker |
 
 `scripts/setup.sh` installs them — a plain file copy, so no shell quoting rule

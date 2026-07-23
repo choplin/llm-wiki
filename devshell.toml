@@ -1,0 +1,4 @@
+[devshell]
+name = "llm-wiki"
+
+packages = ["lefthook"]

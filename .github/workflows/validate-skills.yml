@@ -1,0 +1,45 @@
+name: Validate skills
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/validate-skills.yml"
+      - "lefthook.yml"
+      - "scripts/validate-skills.sh"
+      - "skills/**"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/validate-skills.yml"
+      - "lefthook.yml"
+      - "scripts/validate-skills.sh"
+      - "skills/**"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: skill-validator
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install skill-validator
+        env:
+          SKILL_VALIDATOR_VERSION: "1.5.6"
+          SKILL_VALIDATOR_SHA256: "c97faee388056023c616e312927faffd07e028bcd76d799e42da612dad7972df"
+        run: |
+          archive="skill-validator_${SKILL_VALIDATOR_VERSION}_linux_amd64.tar.gz"
+          url="https://github.com/agent-ecosystem/skill-validator/releases/download/v${SKILL_VALIDATOR_VERSION}/${archive}"
+          curl --fail --location --silent --show-error "$url" --output "$RUNNER_TEMP/$archive"
+          echo "$SKILL_VALIDATOR_SHA256  $RUNNER_TEMP/$archive" | sha256sum --check
+          mkdir -p "$RUNNER_TEMP/skill-validator-bin"
+          tar --extract --gzip --file "$RUNNER_TEMP/$archive" \
+            --directory "$RUNNER_TEMP/skill-validator-bin"
+          echo "$RUNNER_TEMP/skill-validator-bin" >> "$GITHUB_PATH"
+
+      - name: Validate skills
+        run: ./scripts/validate-skills.sh

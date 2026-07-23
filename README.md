@@ -161,7 +161,7 @@ skills/                  # portable, agent-agnostic Agent Skills
   llm-wiki-init/         #   owns the deployable payload + the installer
     assets/config.toml   #     verb aliases → notebook .zk/config.toml
     assets/default.md    #     note template → notebook .zk/templates/
-    assets/completions/  #     opt-in bash/zsh completion → notebook .zk/completions/
+    assets/llm-wiki.*    #     opt-in bash/zsh completion → notebook .zk/completions/
     scripts/walk.sh      #     human link walker → notebook .zk/
     scripts/setup.sh     #     copies the above into the notebook (idempotent)
 docs/                    # design / decision records
@@ -173,4 +173,21 @@ To install from a local checkout instead of the published repo:
 
 ```bash
 skills add ./skills --skill '*' -a claude-code -g -y   # symlinks this working tree
+```
+
+## Development
+
+The repository validates every skill with `skill-validator` v1.5.6. Run the
+same strict check used by hooks and CI:
+
+```bash
+./scripts/validate-skills.sh
+```
+
+The skills intentionally use the platform extension `user-invocable`; the
+validation entrypoint allows extra frontmatter while keeping all other warnings
+fatal. Enable the pre-push hook after entering the development shell:
+
+```bash
+lefthook install
 ```

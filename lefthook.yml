@@ -1,0 +1,4 @@
+pre-push:
+  jobs:
+    - name: validate skills
+      run: ./scripts/validate-skills.sh
