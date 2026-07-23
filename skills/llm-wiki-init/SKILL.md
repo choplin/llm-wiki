@@ -28,6 +28,8 @@ source of truth:
 |------|-------------|------------|
 | `assets/config.toml` | `.zk/config.toml` | the verb `[alias]` block — the KB mechanics |
 | `assets/default.md` | `.zk/templates/default.md` | the note template (distill footprint frontmatter) |
+| `assets/completions/llm-wiki.bash` | `.zk/completions/llm-wiki.bash` | opt-in bash completion augmentation |
+| `assets/completions/llm-wiki.zsh` | `.zk/completions/llm-wiki.zsh` | opt-in zsh completion augmentation |
 | `scripts/walk.sh` | `.zk/walk.sh` | the human-only fzf link walker |
 
 `scripts/setup.sh` installs them — a plain file copy, so no shell quoting rule
@@ -49,9 +51,9 @@ skills were updated, without touching any note.
    bash "$llm_wiki_init_dir/scripts/setup.sh"
    ```
    It self-locates its own `assets/`, needs no other input, overwrites the
-   config / template / walk.sh (an overwrite, not a diff — safe to re-run any
-   number of times), and prints the notebook path. `zk init` runs only if the
-   notebook does not yet exist.
+   config / template / completion files / walk.sh (an overwrite, not a diff —
+   safe to re-run any number of times), and prints the notebook path. `zk init`
+   runs only if the notebook does not yet exist.
    - If it writes to `~/.local/share` and hits a sandbox denial
      (`Operation not permitted`), re-run with the sandbox disabled — the write
      target is outside the workspace by design.
@@ -61,7 +63,9 @@ skills were updated, without touching any note.
 3. **Confirm.** Report the notebook path from setup's output and that the verbs
    are (re)deployed. Optionally list the installed verbs (`scan` / `find` /
    `show` / `links` / `tags` / `graph` / `new` / `archive` / `reindex` / `walk`
-   / `browse`) so the user sees what is now available.
+   / `browse` / `help`) so the user sees what is now available. The completion
+   files are deployed but deliberately inactive until the user sources the
+   bash or zsh artifact; setup never edits a shell startup file.
 
 Setup does **not** create or reindex notes — it only provisions config. For note
 operations, use the capture / retrieve / distill / overview skills (which apply

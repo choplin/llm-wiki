@@ -50,7 +50,35 @@ The notebook is created on first use at
 ```bash
 zk find "raft"      # human-readable search: title · tags · snippet
 zk walk "raft"      # interactive fzf link walker
+zk help             # llm-wiki's human verb reference
 ```
+
+`zk --help` describes zk's native commands only. Use `zk help` for the
+llm-wiki human surface, and `zk config --list aliases` for the complete,
+currently configured alias list.
+
+### Optional shell completion
+
+Setup deploys sourceable bash and zsh completion files with the notebook but
+does not activate them or edit a shell startup file. Enable one explicitly in
+the current shell:
+
+```bash
+# bash
+source "${XDG_DATA_HOME:-$HOME/.local/share}/llm-wiki/.zk/completions/llm-wiki.bash"
+```
+
+```zsh
+# zsh
+source "${XDG_DATA_HOME:-$HOME/.local/share}/llm-wiki/.zk/completions/llm-wiki.zsh"
+```
+
+Add the matching `source` line to your own `.bashrc` or `.zshrc` if you want it
+on every shell. The integration adds configured aliases to `zk <TAB>` while
+retaining native zk commands and an existing function-based zk completion when
+one is present. Bash is the base artifact and may also be usable in environments
+that explicitly load bash-completion files, but llm-wiki tests and documents
+only bash and zsh.
 
 ## How it works
 
@@ -102,6 +130,7 @@ is interactive.
 | `tags` | The keyword index. |
 | `walk <query>` | Interactive [fzf](https://github.com/junegunn/fzf) link walker — start from a note and browse its links by hand (**human-only**; agents traverse non-interactively with `links`). |
 | `browse [filters…]` | Interactive [fzf](https://github.com/junegunn/fzf) note picker — narrow by title and `#tag` at once, enter prints the path, ctrl-o edits. No args scopes to the current repo's concern; args forward to `scan` (**human-only**; agents use `scan`). |
+| `help` | Print the human verb reference and point to the complete configured alias list. |
 
 The remaining verbs are agent-facing: `scan` and `graph` return raw JSON (`find`
 is the thin human presenter over `scan`), and `new` / `archive` / `reindex`
@@ -119,6 +148,7 @@ skills/                  # portable, agent-agnostic Agent Skills
   llm-wiki-init/         #   owns the deployable payload + the installer
     assets/config.toml   #     verb aliases → notebook .zk/config.toml
     assets/default.md    #     note template → notebook .zk/templates/
+    assets/completions/  #     opt-in bash/zsh completion → notebook .zk/completions/
     scripts/walk.sh      #     human link walker → notebook .zk/
     scripts/setup.sh     #     copies the above into the notebook (idempotent)
 docs/                    # design / decision records

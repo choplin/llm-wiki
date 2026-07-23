@@ -63,7 +63,7 @@ wiki="${XDG_DATA_HOME:-$HOME/.local/share}/llm-wiki"   # for the verb calls belo
 ```
 
 The verbs it installs — `scan` / `find` / `show` / `links` / `tags` / `graph` /
-`new` / `archive` / `reindex` / `walk` / `browse` — are documented in
+`new` / `archive` / `reindex` / `walk` / `browse` / `help` — are documented in
 **Verb surface** below (what each does, when to reach for it); their
 implementation lives in `llm-wiki-init/assets/config.toml`.
 
@@ -268,12 +268,15 @@ zk -W "$wiki" reindex                           # after any write / move / delet
 zk -W "$wiki" walk "<query>"                    # start from a note, walk links in fzf
 zk -W "$wiki" browse                            # fzf-pick a note of the current concern (git-resolved from the caller's dir)
 zk -W "$wiki" browse <scope>/                   # fzf-pick over an explicit scope (args forward to scan)
+
+# Human discovery:
+zk -W "$wiki" help                              # human verb reference + complete alias-list pointer
 ```
 
 - `links` takes a **path**, not a title. Resolve a title to a path with
   `zk -W "$wiki" scan -m "<title>"` and read `.path` from its JSON.
-- `walk` and `browse` are the **only human-CLI-facing verbs** and the sole verbs
-  that need a dependency beyond zk (fzf).
+- `walk` and `browse` are the only interactive verbs and the sole verbs that
+  need a dependency beyond zk (fzf).
 - `walk` is a thin wrapper over the bundled
   `llm-wiki-init/scripts/walk.sh`, installed into the notebook at `.zk/walk.sh` by
   setup. Keys:

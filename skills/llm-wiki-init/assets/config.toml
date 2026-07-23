@@ -74,6 +74,7 @@ hashtags = true
 #                           OLDPWD, it is not inherited from the caller's
 #                           shell). Using $PWD here silently returns the whole
 #                           notebook instead of the current concern.
+#   help                  — human verb reference and discovery pointers.
 scan  = '[ -z "$LLM_WIKI_INCLUDE_ARCHIVED" ] && set -- -x _archived "$@"; zk --no-input list --quiet "$@" -f json | jq -c ".[] | {title, tags: (.metadata.tags // []), path, snippet: (.body[0:120]), updated: .metadata.updated, distilled: .metadata.distilled, distill_count: .metadata.distill_count}"'
 find  = 'zk scan --match "$*" | jq -r "[.title, (.tags | map(\"#\"+.) | join(\" \")), .snippet] | join(\"  \")"'
 show  = 'q="$*"; set --; [ -z "$LLM_WIKI_INCLUDE_ARCHIVED" ] && set -- -x _archived; zk --no-input list --quiet "$@" --match "$q" --format full'
@@ -85,3 +86,4 @@ archive = 'for p in "$@"; do d="_archived/$(dirname "$p")"; mkdir -p "$ZK_NOTEBO
 reindex = 'zk --no-input index'
 walk    = 'bash "$ZK_NOTEBOOK_DIR/.zk/walk.sh" "$@"'
 browse  = 'command -v fzf >/dev/null 2>&1 || { printf "browse requires fzf but it is not installed. Install it (e.g. \`brew install fzf\`) and retry.\n" >&2; exit 1; }; if [ $# -eq 0 ] && d=$(git -C "${OLDPWD:-.}" rev-parse --path-format=absolute --git-common-dir 2>/dev/null); then s=$(basename "$(dirname "$d")"); [ -d "$ZK_NOTEBOOK_DIR/$s" ] && set -- "$s/"; fi; zk scan "$@" | jq -r "[.path, .title, (.tags | map(\"#\"+.) | join(\" \")), \"\u001b[2m\" + ((.snippet // \"\") | gsub(\"\\\\s+\"; \" \")) + \"\u001b[0m\"] | @tsv" | fzf --ansi --delimiter="\t" --with-nth=2.. --prompt="browse> " --header="enter: print path · ctrl-o: edit · esc: quit" --preview="cat \"$ZK_NOTEBOOK_DIR\"/{1}" --bind="ctrl-o:execute(\${EDITOR:-vi} \"$ZK_NOTEBOOK_DIR\"/{1})" | cut -f1'
+help    = 'printf "%s\n" "llm-wiki human verbs:" "  find <query>       search titles, tags, and snippets" "  show <query>       print matching notes in full" "  links <path>       show inbound and outbound links" "  tags               list the keyword index" "  walk <query>       interactively walk links (requires fzf)" "  browse [filters…]  interactively pick a note (requires fzf)" "" "zk --help shows native zk commands only." "Run zk config --list aliases for every configured alias."'
