@@ -59,36 +59,39 @@ currently configured alias list.
 
 ### Optional shell completion
 
-Setup deploys sourceable bash and zsh completion files with the notebook but
-does not activate them or edit a shell startup file. Enable one explicitly in
-the current shell:
+Setup deploys bash and zsh completion files with the notebook but does not
+activate them or edit a shell startup file. Enable bash explicitly in the
+current shell:
 
 ```bash
 # bash
 source "${XDG_DATA_HOME:-$HOME/.local/share}/llm-wiki/.zk/completions/llm-wiki.bash"
 ```
 
-```zsh
-# zsh: source directly
-source "${XDG_DATA_HOME:-$HOME/.local/share}/llm-wiki/.zk/completions/llm-wiki.zsh"
-```
-
-For zsh's normal `fpath` delivery instead, symlink the same file under the
-function name expected by its `#compdef` header, then run `compinit` as usual:
+For zsh, symlink the completion into a directory on `fpath`, under the function
+name expected by its `#compdef` header. Then let the usual `compinit` setup load
+it:
 
 ```zsh
 mkdir -p ~/.zsh/functions
 ln -s "${XDG_DATA_HOME:-$HOME/.local/share}/llm-wiki/.zk/completions/llm-wiki.zsh" \
-  ~/.zsh/functions/_llm_wiki_zk
+  ~/.zsh/functions/_zk
+```
+
+The `fpath` entry must exist before the first `compinit` invocation. Some macOS
+setups run `compinit` from `/etc/zshrc` before the user `.zshrc`; in that case,
+put the entry in `~/.zshenv`:
+
+```zsh
+fpath=($HOME/.zsh/functions(N-/) $fpath)
 ```
 
 If `compinit` is using an old completion dump after adding the symlink, remove
 that dump once and start a new shell so zsh rebuilds it.
 
-The integration adds configured aliases to `zk <TAB>` while retaining native zk
-commands and an existing function-based zk completion when one is present. Bash
-is the base artifact and may also be usable in environments that explicitly load
-bash-completion files, but llm-wiki tests and documents only bash and zsh.
+The integration adds configured aliases and native zk commands to `zk <TAB>`.
+Bash is the base artifact and may also be usable in environments that explicitly
+load bash-completion files, but llm-wiki tests and documents only bash and zsh.
 
 ## How it works
 
